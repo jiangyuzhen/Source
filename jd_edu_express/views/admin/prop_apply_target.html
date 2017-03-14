@@ -1,0 +1,223 @@
+<% include header.html %>
+<link href="css/plugins/awesome-bootstrap-checkbox/awesome-bootstrap-checkbox.css" rel="stylesheet">
+<div class="wrapper wrapper-content">
+	<div class="row">
+		<div>
+			<div class="ibox float-e-margins">
+				<div class="ibox-title">
+					<button type="button" class="btn btn-primary" onclick="retrieve();"><i class="fa fa-refresh"></i>&nbsp;刷新</button>
+				</div>
+				<div class="ibox-content">
+					<table id="bstable"></table>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!--弹出编辑窗口-->
+<div id="edit-form" class="container" hidden="hidden" style="height: 400px;width: 600px;" >
+	<div class="panel panel-primary">
+		<div class="panel-title">
+			<h5 id="target_title">属性对象</h5>
+		</div>
+		<div class="panel-body">
+			<div class="ibox float-e-margins">
+				<div class="ibox-content">
+					<table id="bstable2"></table>
+				</div>
+			</div>
+			<div class="text-right ">
+				<button class="btn btn-sm btn-w-m btn-default" type="button" onclick="layer.close(edit_index);">取消</button>
+				<button id="btn_save" type="button" class="btn btn-sm btn-w-m btn-primary">保存</button>
+			</div>			
+		</div>
+	</div>
+</div>
+
+<% include footer.html %>
+<script>
+	var ptype_id;
+	var edit_index;
+
+	$(document).ready(function() {
+		//保存数据
+		$("#btn_save").click(function() {
+			var save_data = $("#bstable2").bootstrapTable('getData');
+			_ajax_post("POST", server_url + "/property/updateproptypetarget", {
+					ptype_id: ptype_id,
+					data: JSON.stringify(save_data)
+				},
+				function(){
+					ShowOK();
+					retrieve();
+					layer.close(edit_index);
+				});
+		});
+
+		_ajax_post("GET", server_url + "/baseinfo/getsystarget", {is_apply:1},
+			function(data) {
+				for(var i of data) {
+					cols.push({
+						field: 'target_id_' + i.target_id,
+						title: i.target_name,
+						align: 'center',
+						width: 80,
+						formatter: function(value, row, index) {
+							var str = '不选';
+							if(value == 0) str = '可选';
+							if(value == 1) str = '必选';
+							return str;
+						}
+					})
+				}
+				initTable();
+			});
+	});
+
+	function ShowOK() {
+		_toastr("保存成功!", "bottom-right", "success", false);
+	}
+
+	var cols = [{
+		field: 'row_index',
+		align: 'center',
+		width: 40,
+		formatter: function(value, row, index) {
+			return index + 1;
+		}
+	}, {
+		field: 'ptype_name',
+		title: '属性类别',
+		align: 'center'
+	}, {
+		field: 'data_type',
+		title: '数据类型',
+		align: 'center',
+		width: 60,
+		formatter: 'data_typeFormatter'
+	}];
+
+	//初始化表格
+	function initTable() {
+		cols.push({
+			field: 'opr',
+			title: '操作',
+			align: 'center',
+			width: 80,
+			formatter: function(value, row, index) {
+				return '<a class="set">设置</a>';
+			},
+			events: {
+				'click .set': function(e, value, row, index) {
+					edit_index = layer.open({
+						type: 1,
+						title: "对象关联设置",
+						shadeClose: true,
+						maxmin: true,
+						area: ['600px', '500px'],
+						content: $('#edit-form')
+					});
+				}
+			}
+		});
+
+		$('#bstable').bootstrapTable({
+			columns: cols
+		}).on('click-row.bs.table', function(e, row, $element) {
+			$('.success').removeClass('success');
+			$($element).addClass('success');
+			ptype_id = row.ptype_id;
+
+			$("#target_title").html("属性类别 -> " + row.ptype_name);
+			_ajax_post("GET", server_url + "/property/getproptypetarget", {
+				ptype_id: ptype_id,
+				is_only_apply:1
+			}, loaddata2);
+		});
+
+		$('#bstable2').bootstrapTable({
+//			height: 460,
+			columns: [{
+				field: 'target_name',
+				title: '数据对象',
+				align: 'center'
+			}, {
+				field: 'required',
+				title: '是否必选',
+				align: 'center',
+				width: 260,
+				formatter: required_typeFormatter,
+				events: operateEvents
+			}]
+		}).on('click-row.bs.table', function(e, row, $element) {
+			$('.success').removeClass('success');
+			$($element).addClass('success');
+		});
+
+		retrieve();
+	}
+
+	//选择字段显示
+	function required_typeFormatter(value, row, index) {
+		var name = row.target_id;
+		var checked1 = "";
+		var checked2 = "";
+		var checked3 = "";
+
+		if(value == 0) checked1 = "checked";
+		if(value == 1) checked2 = "checked";
+		if(value == -1) checked3 = "checked";
+
+		var ret = [
+			'<div class="radio radio-info radio-inline">',
+			'    <input class="kexuan" type="radio" id="' + name + '_1" value="0" name="' + name + '" ' + checked1 + '>',
+			'    <label for="' + name + '_1">可选</label></div>',
+			'<div class="radio radio-info radio-inline">',
+			'    <input class="bixuan" type="radio" id="' + name + '_2" value="1" name="' + name + '" ' + checked2 + '>',
+			'    <label for="' + name + '_2">必选</label></div>',
+			'<div class="radio radio-info radio-inline">',
+			'    <input class="buxuan" type="radio" id="' + name + '_3" value="-1" name="' + name + '" ' + checked3 + '>',
+			'    <label for="' + name + '_3">不选</label></div>'
+		].join('');
+		return ret;
+	}
+
+	//表格操作按钮点击事件处理
+	window.operateEvents = {
+		'click .kexuan': function(e, value, row, index) {
+			row.ptype_id = ptype_id;
+			row.required = 0;
+		},
+		'click .bixuan': function(e, value, row, index) {
+			row.ptype_id = ptype_id;
+			row.required = 1;
+		},
+		'click .buxuan': function(e, value, row, index) {
+			row.ptype_id = null;
+			row.required = -1;
+		}
+	};
+
+	//数据类型字段显示
+	function data_typeFormatter(value, row, index) {
+		if(value == "0") return '目录';
+		if(value == "1") return '数值';
+		if(value == "2") return '文本';
+	}
+
+	//加载bstable
+	function loaddata(data) {
+		$("#bstable").bootstrapTable('load', data);
+	}
+
+	//加载bstable
+	function loaddata2(data) {
+		$("#bstable2").bootstrapTable('load', data);
+	}
+
+	//刷新获取数据
+	function retrieve() {
+		_ajax_post("GET", server_url + "/property/getproptypetargetlist", {is_apply:1}, loaddata);
+	}
+</script>

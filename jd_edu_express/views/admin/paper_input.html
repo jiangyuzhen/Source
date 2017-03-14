@@ -1,0 +1,293 @@
+<% include header.html %>
+<div class="wrapper wrapper-content" hidden="hidden">
+	<div class="row" style="background-color: white;">
+		<div class="ibox float-e-margins">
+			<table id="bstable" class="table-fixed"></table>
+		</div>
+	</div>
+</div>
+
+<!--表格工具栏-->
+<div id="toolbar">
+	<form id="search_form" class="form-inline">
+		<div class="radio i-checks">
+			<label>
+				<input type="radio" checked="checked" value="1" name="sel"> <i></i>全部
+			</label>
+		</div>
+		<div class="radio i-checks">
+			<label>
+				<input type="radio" value="2" name="sel"> <i></i>未提交
+			</label>
+		</div>
+		<div class="radio i-checks">
+			<label>
+				<input type="radio" value="3" name ="sel"> <i></i>已提交
+			</label>
+		</div>
+		<button class="btn btn-primary" type="button" onclick="retrievePaper();"><i class="fa fa-refresh"></i>&nbsp;刷新</button>
+		<button id="btn_add" type="button" class="btn btn-primary"><i class="fa fa-plus"></i>&nbsp;添加套题</button>
+	</form>
+</div>
+
+<% include footer.html %>
+
+<script>
+	var paper_id = null;
+	var is_audit = 0;
+	var current_row = null;
+	var offset = 0;
+	var prop_html = '';
+
+	//初始化表格
+	function initTable() {
+		$('#bstable').bootstrapTable({
+			ajax: ajaxRequest,
+			toolbar: "#toolbar",
+			pagination: true,
+			pageNumber: 1,
+			pageSize: 10,
+			pageList: [10, 20, 40],
+			sidePagination: 'server',
+			queryParams: function(params) {
+				params.limit = params.limit;
+				params.offset = params.offset;
+				params.sort = params.sort;
+				params.order = params.order;
+				params.is_audit = 0;
+				params.querycondition = $("#search_form").serialize();
+				return params;
+			},
+			columns: [{
+				field: 'row_index',
+				title: '序号',
+				align: 'center',
+				width: 50,
+				formatter: function(value, row, index) {
+					return offset + index + 1;
+				}
+			}, {
+				field: 'paper_name',
+				title: '名称',
+				align: 'left',
+				halign: 'center',
+			}, {
+				field: 'duration',
+				title: '时间',
+				align: 'center',
+				halign: 'center',
+				width: 70,
+				formatter: function(value, row, index) {
+					return value + '(分钟)'
+				}
+			}, {
+				field: 'status',
+				title: '状态',
+				align: 'center',
+				width: 60,
+				formatter: function(value, row, index) {
+					if(value == 10) value = '待审核'
+					if(value == 100) {
+						value = '未通过'
+						return '<a class="edit">' + value + '</a>';
+					}
+					return value;
+				},
+				events: statusEvents
+			}, {
+				field: 'quest_num',
+				title: '总题量',
+				align: 'center',
+				width: 100
+			}, {
+				field: 'pre_audit_num',
+				title: '待审题量',
+				align: 'center',
+				width: 100
+			}, {
+				field: 'audit_num',
+				title: '已审题量',
+				align: 'center',
+				width: 100
+			}, {
+				field: 'opr',
+				title: '操作',
+				align: 'center',
+				width: 240,
+				formatter: function(value, row, index) {
+					var str = ''
+					if(row.status == 10) {
+						str = '<a class="rollback">取消提交</a>'
+					} else {
+						str = '<a class="edit">修改试卷</a>&nbsp;<a class="editquest">修改题目</a>&nbsp<a class="commit">提交审核</a>&nbsp<a class="delete">删除试卷</a>'
+					}
+					return str;
+				},
+				events: operateEvents
+			}],
+		}).on('click-row.bs.table', function(e, row, $element) {
+			$('.success').removeClass('success');
+			$($element).addClass('success');
+			paper_id = row.paper_id;
+		});
+	}
+
+	function setqueststatus(paper_id, status) {
+		_ajax_post("POST", server_url + "/quest/setpaperstatus", {
+				paper_id: paper_id,
+				status: status
+			},
+			function() {
+				retrievePaper();
+				_toastr_ok("保存成功!");
+			});
+	}
+
+	window.statusEvents = {
+		'click .edit': function(e, value, row, index) {
+			alert(row.remark);
+		}
+	};
+
+	//表格操作按钮点击事件处理
+	window.operateEvents = {
+		'click .edit': function(e, value, row, index) {
+			paper_id = row.paper_id;
+			current_row = row;
+			Edit();
+		},
+		'click .commit': function(e, value, row, index) {
+			paper_id = row.paper_id;
+			var layer_index;
+			layer_index = layer.confirm('您确定要提交当前试卷吗？', {
+				btn: ['确定', '取消']
+			}, function() {
+				setqueststatus(paper_id, 10);
+				layer.close(layer_index);
+			}, function() {
+				layer.close(layer_index);
+			});
+		},
+		'click .rollback': function(e, value, row, index) {
+			paper_id = row.paper_id;
+			var layer_index;
+			layer_index = layer.confirm('您确定要取消提交当前试卷吗？', {
+				btn: ['确定', '取消']
+			}, function() {
+				setqueststatus(paper_id, 0);
+				layer.close(layer_index);
+			}, function() {
+				layer.close(layer_index);
+			});
+		},
+		'click .editquest': function(e, value, row, index) {
+			paper_id = row.paper_id;
+			current_row = row;
+
+			layer.open({
+				type: 2,
+				title: false,
+				shadeClose: false,
+				maxmin: false,
+				area: ['100%', '100%'],
+				content: '/admin/paper_quest_input',
+			});
+		},
+		'click .delete': function(e, value, row, index) {
+			var layer_index;
+			layer_index = layer.confirm('您确定要删除当前数据吗？', {
+				btn: ['确定', '取消']
+			}, function() {
+				_ajax_post("POST", server_url + "/quest/delpaper", {
+						paper_id: row.paper_id,
+						is_pre: 1
+					},
+					retrievePaper);
+				layer.close(layer_index);
+			}, function() {
+				layer.close(layer_index);
+			});
+		}
+	};
+
+	//自定义AJAX方法
+	function ajaxRequest(params) {
+		offset = params.data.offset;
+		paper_id = null;
+		$.ajax({
+			type: "GET",
+			url: server_url + "/quest/getpaperlist",
+			headers: {
+				token: sessionStorage.getItem('token')
+			},
+			data: params.data,
+			error: function(XMLHttpRequest, textStatus, errorThrown) {
+				_toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+			},
+			success: function(ret) {
+				if(ret.errno == 0) {
+					params.success(ret.data);
+				} else {
+					if(ret.errno == 1001) {
+						$.each(ret.errmsg, function(i, n) {
+							_toastr(n, "bottom-right", "error", false);
+						})
+					} else {
+						_toastr(ret.errmsg, "bottom-right", "error", false);
+					}
+				}
+			}
+		});
+	}
+
+	//刷新
+	function retrievePaper() {	
+		paper_id = null;
+		$('#bstable').bootstrapTable('refresh');
+	}
+
+	function retrieve() {
+		_ajax_post("GET", server_url + "/quest/getpaperquest", {
+				paper_id: paper_id
+			},
+			function(data) {
+				$("#bstable_quest").bootstrapTable('load', data);
+			});
+	}
+
+	//打开编辑界面
+	function Edit() {
+		layer.open({
+			type: 2,
+			title: "套题编辑",
+			shadeClose: true,
+			maxmin: true,
+			area: ['100%', '100%'],
+			content: '/admin/paper_edit',
+		});
+	}
+
+	$(document).ready(function() {
+		//绑定添加按钮事件
+		$("#btn_add").click(function() {
+			paper_id = null;
+			Edit();
+		});
+
+		$(".i-checks").iCheck({
+			radioClass: "iradio_square-green",
+		})
+
+		initTable();
+
+		_ajax_post(
+			"GET",
+			server_url + "/property/getsystargetprophtml", {
+				target_id: 1
+			},
+			function(data) {
+				prop_html = data[0].prop_html;
+				$(".wrapper-content").show();
+			});
+	});
+</script>

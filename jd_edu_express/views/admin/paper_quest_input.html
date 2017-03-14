@@ -1,0 +1,231 @@
+<% include header.html %>
+<div class="wrapper-content float-e-margins" hidden="hidden">
+	<table id="bstable_quest" class="table-fixed"></table>
+</div>
+
+<div id="toolbar_quest">
+	<div class="form-inline">
+		<button class="btn btn-default" onclick="parent.layer.close(index);">&nbsp;取消</button>
+		<button id="btn_quest_add" class="btn btn-primary"><i class="fa fa-plus"></i>&nbsp;添加题目</button>
+		<!--<button id="btn_quest_import" class="btn btn-primary"><i class="fa fa-plus"></i>&nbsp;引入题目</button>-->
+		<!--<button id="btn_quest_score" class="btn btn-primary"><i class="fa fa-edit"></i>&nbsp;设置分值</button>-->
+	</div>
+</div>
+
+<% include footer.html %>
+
+<script>
+	var index;
+	var paper_id = null;
+	var is_audit = 0;
+	var current_row = null;
+	var offset = 0;
+	var prop_html = '';
+	var pre_question;
+	var is_pre = 1;
+
+	//初始化表格
+	function initTable() {
+		$('#bstable_quest').bootstrapTable({
+			pagination: false,
+			toolbar: "#toolbar_quest",
+			toolbarAlign: "right",
+			columns: [{
+				field: 'row_index',
+				title: '序号',
+				align: 'center',
+				width: 50,
+				formatter: function(value, row, index) {
+					return index + 1;
+				}
+			}, {
+				field: 'type_name',
+				title: '题型',
+				align: 'left',
+				halign: 'center',
+				width: 60
+			}, {
+				field: 'title',
+				title: '材料',
+				align: 'left',
+				halign: 'center',
+				width:160
+			},{
+				field: 'statement',
+				title: '题干',
+				align: 'left',
+				halign: 'center'
+			}, {
+				field: 'is_pre',
+				title: '题目状态',
+				align: 'center',
+				width: 80,
+				formatter: function(value, row, index) {
+					if(value == 1) value = '未审核';
+					if(value == 0) value = '已审核';
+					return value;
+				}
+			}, {
+				field: 'is_import',
+				title: '录入方式',
+				align: 'center',
+				width: 80,
+				formatter: function(value, row, index) {
+					if(value == 1) value = '引入';
+					if(value == 0) value = '录入';
+					return value;
+				}
+			}, {
+				field: 'del',
+				title: '操作',
+				align: 'center',
+				width: 160,
+				formatter: function(value, row, index) {
+					var str = '删除题目';
+					if(row.is_import == 1 || row.is_pre == 0) {
+						str = '取消引入'
+					}
+					return '<a class="edit">修改</a>&nbsp;<a class="delete">' + str + '</a>&nbsp;<a class="order">设置序号</a>';
+				},
+				events: questoperateEvents
+			}],
+		}).on('click-row.bs.table', function(e, row, $element) {
+			$('.success').removeClass('success');
+			$($element).addClass('success');
+		});
+
+		retrieve();
+	}
+
+	//表格操作按钮点击事件处理
+	window.questoperateEvents = {
+		'click .edit': function(e, value, row, index) {
+			pre_question = row;
+			quest_id = row.quest_id;
+			is_pre = row.is_pre;
+			EditQuest();
+		},
+		'click .delete': function(e, value, row, index) {
+			var url_address = server_url + "/quest/delquest";
+			var str = '删除题目';
+			if(row.is_import == 1 || row.is_pre == 0) {
+				str = '取消引入'
+				url_address = server_url + "/quest/delpaperquest";
+			}
+			var layer_index;
+			layer_index = layer.confirm('确定要【' + str + '】当前题目吗？', {
+				btn: ['确定', '取消']
+			}, function() {
+				_ajax_post("POST", url_address, {
+						quest_id: row.quest_id,
+						paper_id: paper_id,
+						is_pre: row.is_pre
+					},
+					function() {
+						retrieve();
+						_toastr_ok("保存成功!");
+					});
+				layer.close(layer_index);
+			}, function() {
+				layer.close(layer_index);
+			});
+		},
+		'click .order': function(e, value, row, index) {
+			layer_index = layer.prompt({
+				title: '请输入序号',
+				formType: 0 //prompt风格，支持0-2
+			}, function(pass) {
+				var order_no = 0;
+				if(isNaN(pass)) {
+					alert('请输入数字!')
+					return;
+				}
+
+				var data = $("#bstable_quest").bootstrapTable('getData');
+
+				if(pass < 1 || pass > data.length) {
+					alert('序号输入范围在 1 到 ' + data.length + '！')
+					return;
+				}
+
+				var sort_no = 0;
+				var paper_quest = [];
+				paper_quest.push({
+					quest_id: row.quest_id,
+					sort_no: pass
+				})
+
+				for(var i of data) {
+					if(i.quest_id == row.quest_id) continue;
+					sort_no++;
+					if(sort_no == pass) {
+						sort_no++;
+					}
+					paper_quest.push({
+						quest_id: i.quest_id,
+						sort_no: sort_no
+					})
+				}
+
+				_ajax_post("POST", server_url + "/quest/updatepaperquestsortno", {
+						paper_id: paper_id,
+						paper_quest: JSON.stringify(paper_quest)
+					},
+					function(data) {
+						retrieve();
+					}
+				);
+
+				layer.close(layer_index);
+			});
+		}
+	}
+
+	function retrieve() {
+		_ajax_post("GET", server_url + "/quest/getpaperquest", {
+				paper_id: paper_id
+			},
+			function(data) {
+				$("#bstable_quest").bootstrapTable('load', data);
+			});
+	}
+
+	//打开题目编辑界面
+	function EditQuest() {
+		layer.open({
+			type: 2,
+			title: "题目编辑",
+			shadeClose: true,
+			maxmin: true,
+			area: ['100%', '100%'],
+			content: '/admin/pre_quest_edit',
+		});
+	}
+
+	$(document).ready(function() {
+		index = parent.layer.getFrameIndex(window.name);
+		paper_id = parent.paper_id;
+		prop_html = parent.prop_html;
+
+		
+		$("#btn_quest_add").click(function() {
+			quest_id = null;
+			EditQuest();
+		});
+
+		$("#btn_quest_import").click(function() {
+			index_add_quest = layer.open({
+				type: 2,
+				title: "添加题目",
+				shadeClose: true,
+				maxmin: true,
+				area: ['95%', '95%'],
+				content: '/admin/paper_quest_add',
+			});
+		})
+
+		initTable();
+
+		$(".wrapper-content").show();
+	});
+</script>

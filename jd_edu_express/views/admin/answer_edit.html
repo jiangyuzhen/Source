@@ -1,0 +1,71 @@
+<% include header.html %>
+<div id="answer_edit" class="container">
+	<div class="panel panel-primary">
+		<div class="panel-body">
+			<div class="row">
+				<form role="form" class="form-horizontal">
+					<script id="ue_answer" name="content" type="text/plain"></script>
+					<div class="form-group">
+						<div class="checkbox i-checks">
+							<label><input id="cb_current" type="checkbox">正确答案</label>
+						</div>
+					</div>
+					<div class="text-center">
+						<button id="btn_answer_cancel" type="button" class="btn btn-sm btn-w-m btn-default">取消</button>
+						<button id="btn_answer_ok" type="button" class="btn btn-sm btn-w-m btn-primary">确定</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>
+<% include footer.html %>
+<script type="text/javascript" src="js/plugins/ueditor/lang/zh-cn/zh-cn.js"></script>
+<script type="text/javascript" src="js/plugins/ueditor/ueditor.config.js"></script>
+<script type="text/javascript" src="js/plugins/ueditor/ueditor.all.js"></script>
+<script type="text/javascript" src="js/plugins/ueditor/kityformula-plugin/addKityFormulaDialog.js" ></script>
+<script type="text/javascript" src="js/plugins/ueditor/kityformula-plugin/getKfContent.js" ></script>
+<script type="text/javascript" src="js/plugins/ueditor/kityformula-plugin/defaultFilterFix.js" ></script>
+
+<script>
+	var ue_answer;
+	var layer_index;
+	$(document).ready(function() {
+		layer_index = parent.layer.getFrameIndex(window.name);
+		ue_answer = UE.getEditor('ue_answer', {
+			initialFrameHeight: 320,
+		});
+
+		ue_answer.ready(function() {
+			ue_answer.setContent(parent.ue_answer_content);			
+			if(parent.current == 1) {
+	
+				$("#cb_current").prop("checked", true);
+			} else {
+				$("#cb_current").prop("checked", false);
+			}
+
+			$(".i-checks").iCheck({
+				checkboxClass: "icheckbox_square-green"
+			})
+		});
+
+		$("#btn_answer_cancel").click(function() {
+			parent.layer.close(layer_index);
+		})
+
+		//答案确定按钮事件
+		$("#btn_answer_ok").click(function() {
+			var current = 0;
+			var answer = ue_answer.getContent();
+			if(answer.length <= 0) {
+				_toastr("请录入答案内容!", "bottom-right", "error", false);
+				return;
+			}
+
+			if($("#cb_current").prop("checked")) current = 1;
+			parent.setAnswerValue(answer, current)
+			parent.layer.close(layer_index);
+		});
+	});
+</script>

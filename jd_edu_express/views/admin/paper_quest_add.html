@@ -1,0 +1,432 @@
+<% include header.html %>
+<div class="container">
+	<div class="ibox float-e-margins">
+		<button type="button" class="btn btn-primary" onclick="searchquest()"><i class="fa fa-search"></i>&nbsp;检索题目</button>
+		<button type="button" class="btn btn-primary" onclick="addQest()"><i class="fa fa-plus"></i>&nbsp;引入题目</button>
+		<div class="ibox-content">
+			<table id="bstable" class="table-fixed"></table>
+		</div>
+	</div>
+</div>
+
+<div id="edit-form" class="container" hidden="hidden" style="width: 600px;">
+	<div class="panel panel-primary">
+		<div class="panel-body">
+			<form class="form-horizontal">
+				<div class="form-group">
+					<label class="col-xs-3 control-label text-right">题型</label>
+					<div class="col-xs-3">
+						<select id="f_type_id" class="form-control"></select>
+					</div>
+				</div>
+				<div id="ptype"></div>
+
+				<div class="col-xs-12">
+					<div class="text-center">
+						<button class="btn btn-sm btn-w-m btn-default" type="button" onclick="layer.close(edit_index);">取消</button>
+						<button id="btnSearch" type="button" class="btn btn-sm btn-w-m btn-primary">确定</button>
+					</div>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+<% include footer.html %>
+
+<script>
+	var this_index;
+	var current;
+	var ptype_id;
+	var is_pre = 1;
+	var edit_index;
+	var parm = null;
+	var quest_info;
+	var prop_html;
+	var paper_id;
+
+	function refresh(){
+		$('#bstable').bootstrapTable('refresh')
+	}
+	function searchquest() {
+		edit_index = layer.open({
+			type: 1,
+			title: "题目检索",
+			maxmin: true,
+			area: ['660px', '510px'],
+			content: $('#edit-form'),
+		});
+	}
+
+	function addQest() {
+		var data = $('#bstable').bootstrapTable('getSelections');
+		if(data.length < 1) {
+			alert('请选择要引入的题目!');
+			return;
+		}
+
+		var questlist = [];
+		for(var q of data) {
+			questlist.push({
+				paper_id: paper_id,
+				quest_id: q.quest_id,
+				is_import:1
+			});
+		}
+		
+		_ajax_post("POST", server_url + "/quest/addpaperquest", {
+				paper_id: paper_id,
+				questlist: JSON.stringify(questlist)
+			},
+			function() {
+				parent.retrieve();				
+				parent.layer.close(this_index);
+			});
+	}
+
+	//初始化题目表格
+	function initTable() {
+		$('#bstable').bootstrapTable({
+			ajax: ajaxRequest,
+			pagination: true,
+			pageNumber: 1,
+			pageSize: 10,
+			pageList: [10, 20, 40],
+			sidePagination: 'server',
+			queryParams: function(params) {
+				params.limit = params.limit;
+				params.offset = params.offset;
+				params.sort = params.sort;
+				params.order = params.order;
+				params.organ_id = sessionStorage.organ_id;
+				params.parm = JSON.stringify(parm);
+				return params;
+			},
+			columns: [{
+				checkbox: true
+			}, {
+				field: 'row_index',
+				title: '序号',
+				align: 'center',
+				width: 60,
+				formatter: function(value, row, index) {
+					return offset + index + 1;
+				}
+			}, {
+				field: 'type_name',
+				title: '题型',
+				align: 'center',
+				width: 60
+			}, {
+				field: 'statement',
+				title: '题干',
+				align: 'left',
+				halign: 'center',
+				formatter: function(value, row, index) {
+					return '<a class="edit">' + value + '</a>';
+				},
+				events: operateEvents
+			}, {
+				field: 'opr_name',
+				title: '操作者',
+				align: 'center',
+				width: 60
+			}, {
+				field: 'opr_date',
+				title: '操作时间',
+				align: 'center',
+				width: 140,
+				formatter: function(value, row, index) {
+					return new Date(value).format("yyyy-MM-dd hh:mm:ss");
+				},
+			}, {
+				field: 'del',
+				title: '删除',
+				align: 'center',
+				width: 40,
+				formatter: function(value, row, index) {
+					return '<a class="delete"><i class="fa fa-remove"></i></a>';
+				},
+				events: operateEvents
+			}],
+		}).on('click-row.bs.table', function(e, row, $element) {
+			$('.success').removeClass('success');
+			$($element).addClass('success');
+		});
+	}
+
+	//自定义AJAX方法
+	function ajaxRequest(params) {
+		if(!parm) {
+			params.success({});
+			return;
+		}
+
+		offset = params.data.offset;
+		$.ajax({
+			type: "GET",
+			url: server_url + "/quest/queryquest",
+			headers: {
+				token: sessionStorage.getItem('token')
+			},
+			data: params.data,
+			error: function(XMLHttpRequest, textStatus, errorThrown) {
+				_toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+			},
+			success: function(ret) {
+				if(ret.errno == 0) {
+					params.success(ret.data);
+				} else {
+					if(ret.errno == 1001) {
+						$.each(ret.errmsg, function(i, n) {
+							_toastr(n, "bottom-right", "error", false);
+						})
+					} else {
+						_toastr(ret.errmsg, "bottom-right", "error", false);
+					}
+				}
+			}
+		});
+	}
+
+	//处理属性类别数据
+	function loadptypedate(data) {
+		var html = '',
+			html_type = '';
+
+		$.each(data, function(n, value) {
+			var html_required = ''
+			html += '<div class="form-group">';
+			html += '<label class="col-xs-3 control-label text-right label_ptype_id_' + value.ptype_id + '">' + value.ptype_name + html_required + ':</label>';
+			//			html += '<div class="col-xs-9">';			
+			//如果数目录类型的属性，则添加为属性选择器
+			if(value.data_type == 0) {
+				html += '<div class="col-xs-9">';
+				html += '<div class="prop-chosen-container">';
+				html += '<ul class="prop-chosen-choices" ptype_id="' + value.ptype_id + '">';
+				html += '<li class="prop-chosen-add" add_ptype_id="' + value.ptype_id + '"></li>';
+				html += '</ul></div>';
+				html_type = 'hidden';
+			} else if(value.data_type == 1) {
+				//非目录类型的属性添加为普通输入框
+				html += '<div class="col-xs-3">';
+				html_type = 'text';
+			} else {
+				html += '<div class="col-xs-9">';
+				html_type = 'text';
+			}
+
+			html += '<input id="ptype_id_' + value.ptype_id +
+				'" class="form-control" name="' + value.ptype_id +
+				'" type="' + html_type +
+				'" data_type="' + value.data_type + '">';
+
+			html += '</div>';
+
+			if(value.data_type == 1) {
+				html += '<label class="col-xs-1 control-label text-center ">——</label>';
+				html += '<div class="col-xs-3">';
+				html += '<input id="ptype_id_' + value.ptype_id +
+					'" class="form-control data_end" name="' + value.ptype_id +
+					'" type="' + html_type +
+					'" data_type="' + value.data_type + '">';
+				html += '</div>';
+			}
+
+			html += '</div>';
+		});
+
+		//知识点
+//		html += '<div class="form-group">' +
+//			'	<label class="col-xs-3 control-label text-right label_ptype_id_k">知识点:</label>' +
+//			'	<div class="col-xs-9">' +
+//			'		<div class="prop-chosen-container">' +
+//			'			<ul class="prop-chosen-choices" ptype_id="k">' +
+//			'				<li class="prop-chosen-add" add_ptype_id="k"></li>' +
+//			'			</ul>' +
+//			'		</div>' +
+//			'		<input id="ptype_id_k" class="form-control" name="k" type="hidden" data_type="0" >' +
+//			'	</div>' +
+//			'</div>'
+
+		prop_html = html;
+		$("#ptype").html(html);
+
+		//初始化属性选择器，传输添加回调方法
+		initPropChoose(AddProp);
+
+		//自动提取父窗口的已有的属性
+		var paper_props = parent.getPaperProp();
+		for(var i of paper_props) {
+			ptype_id = i.ptype_id;
+			if(!ptype_id) return;
+			setprop(i.prop_value, i.prop_text);
+		}
+	}
+
+	//表格操作按钮点击事件处理
+	window.operateEvents = {
+		'click .edit': function(e, value, row, index) {
+			quest_info = row;
+			layer.open({
+				type: 2,
+				title: false,
+				shadeClose: false,
+				maxmin: false,
+				area: ['95%', '95%'],
+				content: '/admin/quest_info',
+			});
+		},
+		'click .delete': function(e, value, row, index) {
+			var layer_index;
+			layer_index = layer.confirm('您确定要删除当前题目吗？', {
+				btn: ['确定', '取消']
+			}, function() {
+				_ajax_post("POST", server_url + "/quest/delquest", {
+						quest_id: row.quest_id,
+						is_pre: is_pre
+					},
+					retrieve);
+				layer.close(layer_index);
+			}, function() {
+				layer.close(layer_index);
+			});
+		}
+	};
+
+	//点击属性选择器
+	function AddProp(item) {
+		//获取点击的属性ID
+		ptype_id = $(item).attr("ptype_id");
+		if(!ptype_id) return;
+		layer.open({
+			type: 2,
+			title: "选择属性",
+			area: ['460px', '550px'],
+			content: '/admin/property_selector',
+		});
+	}
+
+	function setprop(parm_prpo_id, parm_prpo_name) {
+		//检查是否存在重复的值，如果有则不再添加
+		var lb_repeat = false;
+
+		$(".prop-search-choice[ptype_id='" + ptype_id + "']").each(function(index) {
+			var data_value = $(this).attr("data-value");
+			data_value = data_value.replace('"', '')
+
+			if(parm_prpo_id == data_value) {
+				lb_repeat = true;
+				return false;
+			}
+		});
+		if(lb_repeat) return;
+
+		//添加选择项目
+		var temp = '<li class="prop-search-choice" ptype_id="' + ptype_id + '" data-value=' + parm_prpo_id + '><span>' + parm_prpo_name + '</span><a class="prop-search-choice-close" data-value=' + parm_prpo_id + '></a></li>';
+		$("[add_ptype_id='" + ptype_id + "']").before(temp);
+
+		var values = [];
+		$(".prop-search-choice[ptype_id='" + ptype_id + "']").each(function(index) {
+			values.push($(this).attr("data-value"));
+		});
+
+		//选择后将值重新赋值在隐藏的input上
+		$("input[id='ptype_id_" + ptype_id + "']").val(values.join(','));
+	}
+
+	$(document).ready(function() {
+		this_index = parent.layer.getFrameIndex(window.name);
+		paper_id = parent.paper_id;
+
+		$("#btnSearch").click(function() {
+			//题型
+			var quest_type_id = $("#f_type_id").val();
+
+			//获取选择的属性值，并判断是否必选
+			var quest_prop = [];
+			var quest_knowledge = [];
+
+			//重新生成目录属性值			
+			$(".prop-chosen-choices").each(function(index) {
+				var values = [];
+				var ptype_id = $(this).attr("ptype_id");
+				$(".prop-search-choice[ptype_id='" + ptype_id + "']").each(function(index) {
+					values.push($(this).attr("data-value"));
+				});
+				$("input[id='ptype_id_" + ptype_id + "']").val(values.join(','));
+			});
+
+			$("#ptype input").each(function(index) {
+				if($(this).hasClass("data_end")) return;
+
+				var ptype_id = $(this).attr("name");
+				var prop_value = $(this).val();
+				var data_type = $(this).attr("data_type");
+
+				if(prop_value.length < 1) {
+					return;
+				}
+
+				prop_ids = prop_value.split(",")
+				for(var i in prop_ids) {
+					if(prop_ids[i] != '') {
+						var prop_id = 0;
+						var text_value = '';
+						var num_value1 = 0;
+						var num_value2 = 0;
+
+						if(data_type == 0) prop_id = prop_ids[i];
+						if(data_type == 1) {
+							num_value1 = prop_ids[i];
+							num_value2 = $(".data_end[name='" + ptype_id + "']").val();
+						}
+						if(data_type == 2) text_value = prop_ids[i];
+
+						//知识点处理
+						if(ptype_id == 'k') {
+							quest_knowledge.push({
+								kid: prop_id
+							});
+						} else {
+							quest_prop.push({
+								ptype_id: ptype_id,
+								prop_id: prop_id,
+								data_type: data_type,
+								num_value1: num_value1,
+								num_value2: num_value2,
+								text_value: text_value,
+							});
+						}
+					}
+				}
+			});
+
+			//组织参数
+			parm = {
+				quest_type_id: quest_type_id,
+				organ_id: sessionStorage.organ_id,
+				quest_prop: JSON.stringify(quest_prop),
+				quest_knowledge: JSON.stringify(quest_knowledge)
+			};
+
+			$('#bstable').bootstrapTable('refresh');
+			layer.close(edit_index);
+		});
+
+		initTable();
+
+		//读取题型
+		_ajax_post("GET", server_url + "/quest/getquesttype", {},
+			function(data) {
+				var html = '';
+				for(var item of data) {
+					html += '<option value="' + item.type_id + '">' + item.type_name + '</option>';
+				}
+				$("#f_type_id").html(html);
+			});
+
+		_ajax_post("GET", server_url + "/property/gettargetproptype", {
+			target_id: 1
+		}, loadptypedate);
+	});
+</script>

@@ -1,0 +1,82 @@
+<!--VUe知识点表格组件模版 -->
+<script type="text/x-template" id="kpaperquery-template">
+    <div class="ibox float-e-margins">
+        <div id="toolbar">
+            <div class="form-inline">
+                <button class="btn btn-sm btn-w-m btn-primary" @click="match_retrieve">属性匹配</button>
+                <button class="btn btn-sm btn-w-m btn-primary" @click="retrieve">检索</button>
+                <button class="btn btn-sm btn-w-m btn-default" @click="layer.close(layer_index)">取消</button>
+            </div>
+        </div>
+        <el-table
+                :data="data"
+                border
+                highlight-current-row
+                style="width: 100%">
+            <el-table-column
+                    type="index"
+                    width="50">
+            </el-table-column>
+            <el-table-column
+                    prop="paper_name"
+                    label="试卷名称"
+                    sortable>
+            </el-table-column>
+            <el-table-column
+                    prop="audit_num"
+                    label="题目数量"
+                    align="center"
+                    width="120"
+                    sortable>
+            </el-table-column>
+            <el-table-column
+                    prop="knum"
+                    label="知识点数量"
+                    align="center"
+                    width="120"
+                    sortable>
+            </el-table-column>
+            <el-table-column
+                    :context="_self"
+                    inline-template
+                    width="80"
+                    label="操作">
+                <div>
+                    <el-button
+                            size="small"
+                            @click="handleSelected($index, row)">
+                        选择
+                    </el-button>
+                </div>
+            </el-table-column>
+        </el-table>
+    </div>
+</script>
+
+<script>
+    // 注册组件
+    Vue.component('kpaperquery', {
+        template: '#kpaperquery-template',
+        props: {
+            data: Array,
+            layer_index: Number
+        },
+        methods: {
+            retrieve() {
+                layer.open({
+                    type: 2,
+                    title: "选择属性",
+                    area: ['800px', '95%'],
+                    content: '/admin/public_prop_query?target_id=2'
+                });
+            },
+            match_retrieve() {
+                matchRetrieve();
+            },
+            handleSelected(index, row) {
+                handleSelectedPaper(row.paper_id);
+                layer.close(this.layer_index)
+            }
+        }
+    })
+</script>

@@ -1,0 +1,404 @@
+<% include header.html %>
+<!--<link rel="stylesheet" href="css/plugins/steps/jquery.steps.css">-->
+
+<div id="container" class="container" hidden="hidden">
+	<div class="panel panel-primary">
+		<div class="panel-body">
+			<form class="form-horizontal">
+				<div id="ptype" class="col-md-11"></div>
+				<div class="col-md-11">
+					<div class="form-group">
+						<label class="col-md-3 control-label text-right">名称</label>
+						<div class="col-md-9">
+							<input id="paper_name" class="form-control" type="text" />
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label class="col-md-3 text-right">作答时间</label>
+						<div class="col-md-2">
+							<input id="duration" class="form-control" type="text" />
+						</div>
+					</div>
+				</div>
+				<div class="text-center">
+					<button class="btn btn-sm btn-w-m btn-default" onclick="parent.layer.close(index);">取消</button>
+					<button id="btnSubmit" type="button" class="btn btn-sm btn-w-m btn-primary">确定</button>
+					<button id="btnAuditNo" type="button" class="btn btn-sm btn-w-m btn-danger">审核不通过</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+
+<% include footer.html %>
+<!--<script type="text/javascript" src="js/plugins/staps/jquery.steps.min.js"></script>-->
+
+<script>
+	var paper_id;
+	var index;
+	var index_add_quest;
+	var quest_id;
+	var question;
+	var is_add = 0;
+	var choosedprop = [];
+	var target_id = 2;
+	var quest_num = 0;
+	var score = 0;
+	var duration = 0;
+	var loading_index;
+
+	//点击属性选择器
+	function AddProp(item) {
+		//获取点击的属性ID
+		ptype_id = $(item).attr("ptype_id");
+		if(!ptype_id) return;
+
+		//获取之前选择的属性
+		choosedprop = [];
+
+		//重新生成目录属性值			
+		$(".prop-chosen-choices").each(function(index) {
+			var values = [];
+			var ptype_id = $(this).attr("ptype_id");
+			$(".prop-search-choice[ptype_id='" + ptype_id + "']").each(function(index) {
+				values.push($(this).attr("data-value"));
+			});
+			$("input[id='ptype_id_" + ptype_id + "']").val(values.join(','));
+		});
+
+		var is_beforeptype = true;
+		$("#ptype input").each(function(index) {
+			var pre_ptype_id = $(this).attr("name");
+			if(ptype_id == pre_ptype_id) {
+				is_beforeptype = false;
+				return;
+			}
+			if(!is_beforeptype) return;
+
+			var prop_value = $(this).val();
+			var data_type = $(this).attr("data_type");
+
+			if(data_type != 0) return;
+			if(prop_value.length < 1) return;
+
+			prop_ids = prop_value.split(",");
+			for(var i in prop_ids) {
+				if(prop_ids[i] != '') {
+					var prop_id = 0;
+					if(data_type == 0) prop_id = prop_ids[i];
+
+					choosedprop.push({
+						ptype_id: pre_ptype_id,
+						prop_id: prop_id
+					});
+
+				}
+			}
+		});
+
+		layer.open({
+			type: 2,
+			title: "选择属性",
+			area: ['450px', '550px'],
+			content: '/admin/property_selector',
+		});
+	}
+
+	function setprop(parm_prpo_id, parm_prpo_name) {
+		//检查是否存在重复的值，如果有则不再添加
+		var lb_repeat = false;
+		$(".prop-search-choice[ptype_id='" + ptype_id + "']").each(function(index) {
+			var data_value = $(this).attr("data-value");
+			data_value = data_value.replace('"', '');
+
+			if(parm_prpo_id == data_value) {
+				lb_repeat = true;
+				return false;
+			}
+		});
+		if(lb_repeat) return;
+
+		//添加选择项目
+		var temp = '<li class="prop-search-choice" ptype_id="' + ptype_id + '" data-value=' + parm_prpo_id + '><span>' + parm_prpo_name + '</span><a class="prop-search-choice-close" data-value=' + parm_prpo_id + '></a></li>';
+		$("[add_ptype_id='" + ptype_id + "']").before(temp);
+
+		var values = [];
+		$(".prop-search-choice[ptype_id='" + ptype_id + "']").each(function(index) {
+			values.push($(this).attr("data-value"));
+		});
+
+		//选择后将值重新赋值在隐藏的input上
+		$("input[id='ptype_id_" + ptype_id + "']").val(values.join(','));
+
+		//构造题目名称
+//		if(paper_id == null) {
+			//获取属性名称
+			var paper_name = '';
+			$(".prop-search-choice span").each(function(index) {
+				if(paper_name.length > 0) paper_name += "-";
+				
+				var path_name = $(this).html();
+				
+				//至提取最后一端
+				var tmps = path_name.split('&gt;');
+				path_name = tmps[tmps.length - 1];
+				
+				paper_name += path_name;
+			});
+			$("#paper_name").val(paper_name);
+//		}
+	}
+
+	//处理属性类别数据
+	function loadptypedate(data) {
+		var html = '',
+			html_type = '';
+		$.each(data, function(n, value) {
+			var html_required = '';
+			html += '<div class="form-group" data_type="' + value.data_type + '">';
+			html += '<label class="col-sm-3 control-label label_ptype_id_' + value.ptype_id + '">' + value.ptype_name + html_required + ':</label>';
+			html += '<div class="col-sm-9">';
+
+			//如果数目录类型的属性，则添加为属性选择器
+			if(value.data_type == 0) {
+				html += '<div class="prop-chosen-container">';
+				html += '<ul class="prop-chosen-choices" ptype_id="' + value.ptype_id + '">';
+				html += '<li class="prop-chosen-add" add_ptype_id="' + value.ptype_id + '"></li>';
+				html += '</ul></div>';
+				html_type = 'hidden';
+			}
+			//非目录类型的属性添加为普通输入框
+			else {
+				html_type = 'text';
+			}
+			html += '<input id="ptype_id_' + value.ptype_id +
+				'" class="form-control" name="' + value.ptype_id +
+				'" type="' + html_type +
+				'" data_type="' + value.data_type +
+				'" choose_required="' + value.required + '">';
+			html += '</div></div>';
+		});
+
+		$("#ptype").html(html);
+
+		//隐藏数值类型的输入框
+		$(".form-group[data_type='1']").each(function(index) {
+			$(this).hide();
+		});
+
+		//新增题目数值类型输入框默认值0.5
+		if(paper_id == null) {
+			$("input[data_type='1']").each(function(index) {
+				$(this).val('0.5');
+			});
+		}
+
+		//处理必选题目标注红色*
+		$("#ptype input").each(function(index) {
+			var ptype_id = $(this).attr("name");
+			var data_type = $(this).attr("data_type");
+
+			if(($(this).attr("choose_required") == 1) && data_type == 0) {
+				var lable_html = $(".label_ptype_id_" + ptype_id).html();
+				$(".label_ptype_id_" + ptype_id).html(lable_html + "<span style='color: red;'>*</span>");
+			}
+		});
+				
+		//初始化属性选择器，传输添加回调方法
+		initPropChoose(AddProp);		
+	}
+
+	function getPaperProp() {
+		var paper_props = [];
+
+		$(".prop-search-choice").each(function(index) {
+			var ptype_id = $(this).attr("ptype_id");
+			var prop_value = $(this).attr("data-value");
+			var prop_text = $(this).children("span").html();
+
+			if(prop_value.length < 1) return;
+
+			paper_props.push({
+				ptype_id: ptype_id,
+				prop_value: prop_value,
+				prop_text: prop_text
+			});
+		});
+
+		return paper_props;
+	}
+
+	function saveData() {
+		var paper_name = $("#paper_name").val();
+		if(!paper_name) {
+			_toastr_err("请录入题目名称!");
+			return;
+		}
+
+		//重新生成目录属性值			
+		$(".prop-chosen-choices").each(function(index) {
+			var values = [];
+			var ptype_id = $(this).attr("ptype_id");
+			$(".prop-search-choice[ptype_id='" + ptype_id + "']").each(function(index) {
+				values.push($(this).attr("data-value"));
+			});
+			$("input[id='ptype_id_" + ptype_id + "']").val(values.join(','));
+		});
+
+		//获取选择的属性值，并判断是否必选
+		var paper_prop = [];
+		var check_ok = true;
+		$("#ptype input").each(function(index) {
+			var ptype_id = $(this).attr("name");
+			var prop_value = $(this).val();
+			var data_type = $(this).attr("data_type");
+
+			if(prop_value.length < 1) {
+				return;
+			}
+
+			prop_ids = prop_value.split(",");
+			for(var i in prop_ids) {
+				if(prop_ids[i] != '') {
+					var prop_id = 0;
+					var text_value = '';
+					var num_value = 0;
+
+					if(data_type == 0) prop_id = prop_ids[i];
+					if(data_type == 1) num_value = prop_ids[i];
+					if(data_type == 2) text_value = prop_ids[i];
+
+					paper_prop.push({
+						target_id: 2,
+						ptype_id: ptype_id,
+						prop_id: prop_id,
+						num_value: num_value,
+						text_value: text_value
+					});
+				}
+			}
+		});
+
+		duration = $("#duration").val();
+
+		//保存试卷		
+		var parm = {
+			paper_id: paper_id,
+			organ_id: sessionStorage.organ_id,
+			paper_name: paper_name,
+			quest_num: quest_num,
+			score: score,
+			duration: duration,
+			opr_id: sessionStorage.userid,
+			paper_prop: JSON.stringify(paper_prop),
+			is_pre: 1,
+			is_audit: is_audit
+		};
+
+		var post_url = server_url + "/quest/updatepaper";
+
+		_ajax_post("POST", post_url, parm, function() {
+			parent.retrievePaper();
+			_toastr_ok("保存成功");
+			parent.layer.close(index);
+		});
+	}
+
+	$(document).ready(function() {
+		index = parent.layer.getFrameIndex(window.name);
+		is_audit = parent.is_audit;
+
+		if(is_audit == 1) {
+			$("#btnSubmit").html('审核通过');
+		} else {
+			$("#btnAuditNo").hide();
+		}
+
+		//如果是修改，需读取数据
+		paper_id = parent.paper_id;
+
+		loading_index = layer.load(1, {shade: false}); 
+		//初始化属性选择
+		_ajax_post("GET", server_url + "/property/gettargetproptype", {
+			target_id: 2
+		}, function(data) {
+			
+			loadptypedate(data);
+
+			//赋值数据	
+			if(paper_id != null) {
+				$("#paper_name").val(parent.current_row.paper_name);
+				quest_num = parent.current_row.quest_num;
+				score = parent.current_row.score;
+				duration = parent.current_row.duration;
+				$("#duration").val(parent.current_row.duration);
+
+				//读取并设置试卷属性和题目
+				_ajax_post("GET", server_url + "/baseinfo/gettargetpropvalue", {
+						target_id: 2,
+						key_id: paper_id
+					},
+					function(data) {
+						//设置属性
+						for(var item of data) {
+							data_type = $("input[id='ptype_id_" + item.ptype_id + "']").attr('data_type');
+							if(data_type == 0) {
+								ptype_id = item.ptype_id;
+								setprop(item.prop_id, item.path_name);
+							}
+							if(data_type == 1) $("input[id='ptype_id_" + item.ptype_id + "']").val(item.num_value);
+							if(data_type == 2) $("input[id='ptype_id_" + item.ptype_id + "']").val(item.text_value);
+						}
+						
+						layer.close(loading_index);
+						$("#container").show();
+					});
+			} else {
+				//如果是新增，提取该操作员最后一次选择的属性
+				if(!quest_id) {
+					_ajax_post("GET", server_url + "/public/getoprlastinput", {
+							target_id: 2,
+							opr_id: sessionStorage.userid
+						},
+						function(data) {
+							for(item of data) {
+								ptype_id = item.ptype_id,
+									setprop(item.prop_id, item.path_name);
+							}
+							
+							layer.close(loading_index);
+						});
+
+				}
+				$("#container").show();
+			}
+		});
+
+		$("#btnSubmit").click(function() {
+			saveData();
+		});
+
+		//审核不通过，弹出录入不通过原因
+		$("#btnAuditNo").click(function() {
+			layer.prompt({
+				formType: 2,
+				value: '',
+				title: '请输入原因'
+			}, function(value, thisindex, elem) {
+				if(value.length < 1) {
+					return;
+				};
+				layer.close(index);
+				_ajax_post("POST", server_url + "/quest/auditpaperno", {
+					paper_id: paper_id,
+					remark: value,
+					opr_id: sessionStorage.userid
+				}, function(data) {
+					parent.retrievePaper();
+					parent.layer.close(index);
+				});
+			});
+		});
+	});
+</script>

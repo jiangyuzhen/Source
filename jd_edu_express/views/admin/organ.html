@@ -1,0 +1,218 @@
+<% include header.html %>
+<div class="wrapper wrapper-content">
+	<div class="ibox float-e-margins">
+		<a class="btn btn-primary" onclick="retrieve();"><i class="fa fa-refresh"></i>&nbsp;刷新</a>
+		<div class="ibox-content">
+			<table id="bstable"></table>
+		</div>
+	</div>
+</div>
+
+<!--弹出编辑窗口-->
+<div id="edit-form" class="container" hidden="hidden" style="width: 800px;">
+	<div class="panel panel-primary">
+		<div class="panel-body">
+			<form id="form-post" role="form" class="form-post form-horizontal">
+				<input id="organ_id" name="organ_id" class="form-control" type="hidden">
+				<input id="statu" name="statu" class="form-control" type="hidden">
+				<input id="auditor" name="auditor" class="form-control" type="hidden">
+				<div class="form-group">						
+					<label class="col-md-2 control-label text-right">机构名称</label>
+					<div class="col-md-9">
+						<input id="organ_name" name="organ_name" class="form-control" readonly="readonly">
+					</div>
+				</div>
+				<div class="form-group">						
+					<label class="col-md-2 control-label text-right">联系人</label>
+					<div class="col-md-9">
+						<input id="linkman" name="linkman" class="form-control" readonly="readonly">
+					</div>
+				</div>				
+				<div class="form-group">						
+					<label class="col-md-2 control-label text-right">联系电话</label>
+					<div class="col-md-9">
+						<input id="linktel" name="linktel" class="form-control" readonly="readonly">
+					</div>
+				</div>
+				<div class="form-group">						
+					<label class="col-md-2 control-label text-right">邮箱</label>
+					<div class="col-md-9">
+						<input id="email" name="email" class="form-control" readonly="readonly">
+					</div>
+				</div>
+				<div class="form-group">						
+					<label class="col-md-2 control-label text-right">地址</label>
+					<div class="col-md-9">
+						<input id="address" name="address" class="form-control" readonly="readonly">						
+					</div>
+				</div>
+				<div class="text-right ">
+					<button class="btn btn-sm btn-w-m btn-default" type="button" onclick="layer.close(edit_index);">取消</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+<% include footer.html %>
+<script>
+	var edit_index;
+	var offset = 0;
+
+	function ShowEdit() {
+		edit_index = layer.open({
+			type: 1,
+			title: "机构信息",
+			shadeClose: true,
+			maxmin: true,
+			area: ['800px', '400px'],
+			content: $('#edit-form'),
+		});
+	}
+
+	//初始化表格
+	function initTable() {
+		$('#bstable').bootstrapTable({
+			height: 460,
+			columns: [{
+				field: 'row_index',
+				align: 'center',
+				width: 40,
+				formatter:function(value,row,index){
+					return offset + index + 1;
+				}
+			}, {
+				field: 'organ_name',
+				title: '机构',
+				align: 'left',
+				halign:'center',
+				formatter: function(value, row, index) {
+					return '<a class="edit">' + value + '</a>';
+				},
+				events: operateEvents
+			}, {
+				field: 'email',
+				title: '邮箱',
+				align: 'left',
+				halign:'center',
+				width:200,
+				formatter: function(value, row, index) {
+					return '<a class="edit">' + value + '</a>';
+				},
+				events: operateEvents
+			}, {
+				field: 'linkman',
+				title: '联系人',
+				align: 'left',
+				halign:'center',
+				width:100,
+				formatter: function(value, row, index) {
+					return '<a class="edit">' + value + '</a>';
+				},
+				events: operateEvents
+			}, {
+				field: 'linktel',
+				title: '联系电话',
+				align: 'left',
+				halign:'center',
+				width:100,
+				formatter: function(value, row, index) {
+					return '<a class="edit">' + value + '</a>';
+				},
+				events: operateEvents
+			}, {
+				field: 'statu',
+				title: '状态',
+				align: 'center',
+				halign:'center',
+				width:50,
+				formatter: function(value, row, index) {
+					if(value == 1) value = '正常'
+					if(value == 0) value = '停用'
+					return value;
+				},
+				events: operateEvents
+			}, {
+				field: 'opr',
+				title: '操作',
+				align: 'center',
+				width: 50,
+				formatter: function(value, row, index) {
+					if(row.statu == 0) value = "启用"
+					if(row.statu == 1) value = "停用"
+					return '<a class="statu">'+value+'</a>';
+				},
+				events: operateEvents
+			}]
+		}).on('click-row.bs.table', function(e, row, $element) {
+			$('.success').removeClass('success');
+			$($element).addClass('success');
+		});
+
+		retrieve();
+	}
+
+	//表格操作按钮点击事件处理
+	window.operateEvents = {
+		'click .edit': function(e, value, row, index) {
+			$('#organ_id').val(row.organ_id);
+			$('#organ_name').val(row.organ_name);
+			ShowEdit()
+		},
+		'click .statu': function(e, value, row, index) {
+			var statu = 0;
+			if(row.statu == 0) {
+				statu = 1;
+				value = "启用"
+			}
+			if(row.statu == 1) {
+				statu = 0;
+				value = "停用"
+			}
+			var layer_index;
+			layer_index = layer.confirm('您确定要' + value + '【' + row.organ_name + '】吗？', {
+				btn: ['确定', '取消']
+			}, function() {
+				_ajax_post("POST", server_url + "/baseinfo/setorgan", {
+						organ_id: row.organ_id,
+						statu:statu
+					},
+					function(){
+						retrieve();
+						_toastr_ok("修改成功!");
+					});
+				layer.close(layer_index);
+			}, function() {
+				layer.close(layer_index);
+			});
+		}
+	};
+
+	//刷新获取数据
+	function retrieve() {
+		_ajax_post("GET", server_url + "/baseinfo/getorgan", {}, function(data) {
+			$("#bstable").bootstrapTable('load', data);
+		});
+	}
+
+	$(document).ready(function() {
+		//绑定添加按钮事件
+		$("#btn_add").click(function() {
+			$('#organ_id').val('');
+			$('#organ_name').val('');
+
+			ShowEdit();
+		});
+
+		$("#bntSubmit").click(function() {
+			_ajax_post("POST", server_url + "/baseinfo/updateorgan",
+				$('#form-post').serialize(),
+				function() {
+					layer.close(edit_index);
+					_toastr_ok('保存成功!');
+					retrieve();
+				});
+		});
+
+		initTable();
+	});
+</script>

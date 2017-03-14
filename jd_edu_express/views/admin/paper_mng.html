@@ -1,0 +1,276 @@
+<% include header.html %>
+<div class="wrapper-content float-e-margins" hidden="hidden">
+	<table id="bstable" class="table-fixed"></table>
+</div>
+
+<!--表格工具栏-->
+<div id="toolbar">
+	<div class="form-inline">
+		<button class="btn btn-primary" onclick="retrievePaper();"><i class="fa fa-refresh"></i>&nbsp;刷新</button>
+	</div>
+</div>
+
+<% include footer.html %>
+
+<script>
+	var paper_id = null;
+	var is_audit = 1;
+	var current_row = null;
+	var offset = 0;
+	var prop_html = '';
+	var pre_question;
+	var quest_info = 0;
+
+	//初始化题目表格
+	function initTable() {
+		$('#bstable').bootstrapTable({
+			ajax: ajaxRequest,
+			toolbar: "#toolbar",
+			pagination: true,
+			pageNumber: 1,
+			pageSize: 10,
+			pageList: [10, 20, 40],
+			sidePagination: 'server',
+			queryParams: function (params) {
+				params.limit = params.limit;
+				params.offset = params.offset;
+				params.sort = params.sort;
+				params.order = params.order;
+				params.is_audit = 2;
+				return params;
+			},
+			columns: [{
+				field: 'row_index',
+				title: '序号',
+				align: 'center',
+				width: 50,
+				formatter: function (value, row, index) {
+					return offset + index + 1;
+				}
+			}, {
+				field: 'paper_name',
+				title: '名称',
+				align: 'left',
+				halign: 'center',
+			}, {
+				field: 'status',
+				title: '审核状态',
+				align: 'center',
+				width: 100,
+				formatter: function (value, row, index) {
+					if (value == 10) value = '待审核';
+					if (value == 1) value = '已审核';
+					return value;
+				}
+			}, {
+				field: 'quest_num',
+				title: '总题量',
+				align: 'center',
+				width: 100
+			}, {
+				field: 'pre_audit_num',
+				title: '待审题量',
+				align: 'center',
+				width: 100
+			}, {
+				field: 'audit_num',
+				title: '已审题量',
+				align: 'center',
+				width: 100
+			}, {
+				field: 'duration',
+				title: '时间',
+				align: 'center',
+				halign: 'center',
+				width: 100,
+				formatter: function (value, row, index) {
+					return value + '(分钟)'
+				}
+			}, {
+				field: 'opr',
+				title: '操作',
+				align: 'center',
+				width: 160,
+				formatter: function (value, row, index) {
+					var str = '';
+					if (row.status == 10) {
+						str += '<a class="edit">审核试卷</a>&nbsp;';
+					}
+					if (row.pre_audit_num > 0) {
+						str += '<a class="auditquest">审核题目</a>'
+					}
+					return str;
+				},
+				events: operateEvents
+			}],
+		}).on('click-row.bs.table', function (e, row, $element) {
+			$('.success').removeClass('success');
+			$($element).addClass('success');
+			paper_id = row.paper_id;
+		});
+	}
+
+	//表格操作按钮点击事件处理
+	window.operateEvents = {
+		'click .edit': function (e, value, row, index) {
+			paper_id = row.paper_id;
+			current_row = row;
+			Edit();
+		},
+		'click .delete': function (e, value, row, index) {
+			var layer_index;
+			layer_index = layer.confirm('您确定要删除当前数据吗？', {
+				btn: ['确定', '取消']
+			}, function () {
+				_ajax_post("POST", server_url + "/quest/delpaper", {
+							paper_id: row.paper_id,
+							is_pre: 1
+						},
+						retrievePaper);
+				layer.close(layer_index);
+			}, function () {
+				layer.close(layer_index);
+			});
+		},
+		'click .auditquest': function (e, value, row, index) {
+			paper_id = row.paper_id;
+			layer.open({
+				type: 2,
+				title: "套题审核",
+				shadeClose: true,
+				maxmin: true,
+				area: ['100%', '100%'],
+				content: '/admin/paper_quest_audit',
+			});
+		}
+	};
+
+	//表格操作按钮点击事件处理
+	window.questoperateEvents = {
+		'click .edit': function (e, value, row, index) {
+//			current_row = row;
+			pre_question = row;
+			quest_id = row.quest_id;
+			quest_info = 0;
+			if (row.is_pre == 0) quest_info = 1;
+			EditQuest();
+		},
+		'click .delete': function (e, value, row, index) {
+			var layer_index;
+			layer_index = layer.confirm('您确定要删除当前数据吗？', {
+				btn: ['确定', '取消']
+			}, function () {
+				_ajax_post("POST", server_url + "/quest/delquest", {
+							quest_id: row.quest_id,
+							paper_id: paper_id,
+						},
+						function () {
+							_toastr_ok("删除成功!");
+						});
+				layer.close(layer_index);
+			}, function () {
+				layer.close(layer_index);
+			});
+		}
+	};
+
+	//自定义AJAX方法
+	function ajaxRequest(params) {
+		offset = params.data.offset;
+		paper_id = null;
+		$.ajax({
+			type: "GET",
+			url: server_url + "/quest/getpaperlist",
+			headers: {
+				token: sessionStorage.getItem('token')
+			},
+			data: params.data,
+			error: function (XMLHttpRequest, textStatus, errorThrown) {
+				_toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+			},
+			success: function (ret) {
+				if (ret.errno == 0) {
+					params.success(ret.data);
+				} else {
+					if (ret.errno == 1001) {
+						$.each(ret.errmsg, function (i, n) {
+							_toastr(n, "bottom-right", "error", false);
+						})
+					} else {
+						_toastr(ret.errmsg, "bottom-right", "error", false);
+					}
+				}
+			}
+		});
+	}
+
+	//刷新
+	function retrievePaper() {
+		paper_id = null;
+		$('#bstable').bootstrapTable('refresh');
+	}
+
+	//打开题目编辑界面
+	function EditQuest() {
+		if (!paper_id) {
+			_toastr_err('请先选择试卷!');
+			return;
+		}
+		layer.open({
+			type: 2,
+			title: "题目编辑",
+			shadeClose: true,
+			maxmin: true,
+			area: ['100%', '100%'],
+			content: '/admin/pre_quest_edit'
+		});
+	}
+
+	//打开题目编辑界面
+	function Edit() {
+		layer.open({
+			type: 2,
+			title: "套题编辑",
+			shadeClose: true,
+			maxmin: true,
+			area: ['100%', '100%'],
+			content: '/admin/paper_edit'
+		});
+	}
+
+	//操作类型字段显示
+	function operateFormatter(value, row, index) {
+		return ['<div class="btn-group">',
+			'<a data-toggle="modal" href="prop_type.html#modal-form" class="btn btn-xs btn-primary edit">修改</a>',
+			'</div>',
+			'<div class="btn-group">',
+			'<button class="btn btn-danger btn-xs delete">删除</button>',
+			'</div>'
+		].join('');
+	}
+
+	$(document).ready(function () {
+		//绑定添加按钮事件
+		$("#btn_add").click(function () {
+			paper_id = null;
+			Edit();
+		});
+
+		$("#btn_quest_add").click(function () {
+			quest_id = null;
+			EditQuest();
+		});
+
+		initTable();
+
+		_ajax_post(
+				"GET",
+				server_url + "/property/getsystargetprophtml", {
+					target_id: 1
+				},
+				function (data) {
+					prop_html = data[0].prop_html;
+					$(".wrapper-content").show();
+				});
+	});
+</script>

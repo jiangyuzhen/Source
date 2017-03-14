@@ -1,0 +1,356 @@
+<% include header.html %>
+<div id="container" class="container" hidden="hidden">
+	<div class="panel panel-primary">
+		<div class="panel-body">
+			<form class="form-horizontal">
+				<input id="f_quest_id" class="form-control" type="hidden">
+				<div class="form-group">
+					<label class="col-sm-2 text-right">题型</label>
+					<div class="col-sm-2">
+						<select id="f_type_id" class="form-control"></select>
+					</div>
+					<label class="col-sm-1 text-right">展示方式</label>
+					<div class="col-sm-2">
+						<select id="f_show_type" class="form-control">
+							<option value="1">图文</option>
+							<option value="2">语音</option>
+						</select>
+					</div>
+				</div>
+
+				<div id="ptype" class="col-md-11"></div>
+
+				<div class="form-group">
+					<label class="col-sm-2 text-right">题干</label>
+					<div class="col-sm-10">
+						<script id="ue_statement" type="text/plain"></script>
+					</div>
+				</div>
+
+				<div id="question" class="form-group">
+					<label class="col-sm-2 text-right">问题</label>
+					<div class="col-sm-10">
+						<script id="ue_question" type="text/plain"></script>
+					</div>
+				</div>
+
+				<div class="form-group">
+					<label class="col-sm-2 text-right">答案</label>
+					<div class="col-sm-10">
+						<div id="quest_tk" hidden="hidden">
+							<div class="form-group">'
+								<!--<label class="col-sm-3 control-label">正确答案</label>-->
+								<div class="col-sm-9">
+									<input id="input_quest_tk" class="form-control" type="text">
+								</div>
+							</div>
+						</div>
+
+						<div id="quest_pd" hidden="hidden">
+							<a id="btn-check1" class="btn btn-w-m btn-white btn-check"><i class="fa fa-check"></i> 正确</a>
+							<a id="btn-check2" class="btn btn-w-m btn-white btn-check"><i class="fa fa-remove"></i> 错误</a>
+						</div>
+						<div id="quest_xz">
+							<table id="bstable_answer" class="table-fixed"></table>
+						</div>
+					</div>
+				</div>
+
+				<div class="form-group">
+					<label class="col-sm-2 text-right">解析</label>
+					<div class="col-sm-10">
+						<script id="ue_analysis" type="text/plain"></script>
+					</div>
+				</div>
+				<div class="text-center">
+					<button class="btn btn-sm btn-w-m btn-default" onclick="parent.layer.close(index);">取消</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+
+<!--答案表格工具栏-->
+<div id="toolbar">
+</div>
+<% include footer.html %>
+<script type="text/javascript" src="js/plugins/ueditor/lang/zh-cn/zh-cn.js"></script>
+<script type="text/javascript" src="js/plugins/ueditor/ueditor.config.js"></script>
+<script type="text/javascript" src="js/plugins/ueditor/ueditor.all.js"></script>
+<script type="text/javascript" src="js/plugins/ueditor/kityformula-plugin/addKityFormulaDialog.js"></script>
+<script type="text/javascript" src="js/plugins/ueditor/kityformula-plugin/getKfContent.js"></script>
+<script type="text/javascript" src="js/plugins/ueditor/kityformula-plugin/defaultFilterFix.js"></script>
+
+<script>
+	var quest_id;
+	var archive_id;
+	var ue_statement, ue_analysis, ue_question;
+	var index;
+	var ue_answer_content = "",
+		current;
+	var ptype_id;
+	var is_pre = 1;
+	var target_id = 1;
+	var choosedprop = [];
+	var quest_info;
+
+	//初始化题目表格
+	function initTable() {
+		//初始化答案列表
+		$('#bstable_answer').bootstrapTable({
+			toolbar: '#toolbar',
+			columns: [{
+				field: 'answer',
+				title: '选项内容',
+				formatter: function(value, row, index) {
+					return '<a class="edit">' + value + '</a>';
+				},
+				events: answerEvents
+			}, {
+				field: 'current',
+				title: '是否正确',
+				width: 100,
+				align: 'center',
+				formatter: function(value, row, index) {
+					if(value == "0") return '';
+					if(value == "1") return '<i class="fa fa-check"></i>';
+				},
+			}, {
+				field: "del",
+				title: '删除',
+				width: 40,
+				align: 'center',
+				formatter: function(value, row, index) {
+					return '<a class="delete"><i class="fa fa-remove"></i></a>';
+				},
+				events: answerEvents
+			}],
+		}).on('click-row.bs.table', function(e, row, $element) {
+			$('.success').removeClass('success');
+			$($element).addClass('success');
+		});
+
+		ue_statement = UE.getEditor('ue_statement', {
+			initialFrameHeight: 160,
+		});
+
+		ue_question = UE.getEditor('ue_question', {
+			initialFrameHeight: 160,
+		});
+
+		ue_analysis = UE.getEditor('ue_analysis', {
+			initialFrameHeight: 120,
+		});
+	}
+
+	//表格操作按钮点击事件处理
+	window.answerEvents = {
+		'click .edit': function(e, value, row, index) {
+			row_index = index;
+			current = row.current;
+
+			ue_answer_content = row.answer;
+			showAnswerEdit();
+		},
+		'click .delete': function(e, value, row, index) {
+			var layer_index;
+			//询问框
+			layer_index = layer.confirm('您确定要删除当前答案吗？', {
+				btn: ['确定', '取消']
+			}, function() {
+				$("#bstable_answer").bootstrapTable('removeByIndex', {
+					index: index
+				});
+				layer.close(layer_index);
+			}, function() {
+				layer.close(layer_index);
+			});
+		}
+	};
+
+	//弹出答案编辑窗口
+	function showAnswerEdit() {
+		layer.open({
+			type: 2,
+			title: "答案编辑",
+			area: ['820px', '560px'],
+			content: '/admin/answer_edit',
+		});
+	}
+
+	function setprop(parm_prpo_id, parm_prpo_name) {
+		//检查是否存在重复的值，如果有则不再添加
+		var lb_repeat = false;
+		$(".prop-search-choice[ptype_id='" + ptype_id + "']").each(function(index) {
+			var data_value = $(this).attr("data-value");
+			data_value = data_value.replace('"', '')
+
+			if(parm_prpo_id == data_value) {
+				lb_repeat = true;
+				return false;
+			}
+		});
+		if(lb_repeat) return;
+
+		//添加选择项目
+		var temp = '<li class="prop-search-choice" ptype_id="' + ptype_id + '" data-value=' + parm_prpo_id + '><span>' + parm_prpo_name + '</span><a class="prop-search-choice-close" data-value=' + parm_prpo_id + '></a></li>';
+		$("[add_ptype_id='" + ptype_id + "']").before(temp);
+
+		var values = [];
+		$(".prop-search-choice[ptype_id='" + ptype_id + "']").each(function(index) {
+			values.push($(this).attr("data-value"));
+		});
+
+		//选择后将值重新赋值在隐藏的input上
+		$("input[id='ptype_id_" + ptype_id + "']").val(values.join(','));
+	}
+
+	//设置属性和答案	
+	function SetPreQuestInfo(data) {
+		//设置属性
+		for(var item of data.prop_value) {
+			data_type = $("input[id='ptype_id_" + item.ptype_id + "']").attr('data_type');
+			if(data_type == 0) {
+				ptype_id = item.ptype_id;
+				setprop(item.prop_id, item.prop_name);
+			}
+			if(data_type == 1) $("input[id='ptype_id_" + item.ptype_id + "']").val(item.num_value);
+			if(data_type == 2) $("input[id='ptype_id_" + item.ptype_id + "']").val(item.text_value);
+		}
+
+		//设置知识点
+		for(var item of data.pre_quest_knowledge) {
+			ptype_id = 'k';
+			setprop(item.kid, item.value);
+		}
+
+		//设置答案
+		if(parent.pre_question.type_id == 1) $("#bstable_answer").bootstrapTable('append', data.answer);
+		if(parent.pre_question.type_id == 2) {
+			for(var item of data.answer) {
+				if(item.answer == '正确' && item.current == 1) {
+					$("#btn-check1").removeClass("btn-white");
+					$("#btn-check1").addClass("btn-primary");
+				}
+				if(item.answer == '错误' && item.current == 1) {
+					$("#btn-check2").removeClass("btn-white");
+					$("#btn-check2").addClass("btn-primary");
+				}
+			}
+		}
+
+		if(parent.pre_question.type_id == 3 || parent.pre_question.type_id == 4) {
+			for(var item of data.answer) {
+				$("#input_quest_tk").val(item.answer)
+			}
+		}
+	}
+
+	function SetQuestUi(type_id) {
+		$("#quest_pd").hide();
+		$("#quest_tk").hide();
+		$("#quest_xz").hide();
+		//		$("#question").hide();
+
+		if(type_id == 1) {
+			$("#quest_xz").show();
+		}
+
+		if(type_id == 2) {
+			$("#quest_pd").show();
+		}
+
+		if(type_id == 3) {
+			$("#quest_tk").show();
+		}
+
+		if(type_id == 4) {
+			$("#quest_tk").show();
+			//			$("#question").show();
+		}
+	}
+
+	$(document).ready(function() {
+		index = parent.layer.getFrameIndex(window.name);
+		quest_info = parent.quest_info;
+		is_pre = quest_info.is_pre;
+
+		$("#f_type_id").change(function() {
+			SetQuestUi($(this).val())
+		})
+
+		initTable();
+
+		$("#ptype").html(parent.prop_html);
+
+		quest_id = quest_info.quest_id;
+
+		//如果是新增，提取该操作员最后一次选择的属性
+		if(!quest_id) {
+			_ajax_post("GET", server_url + "/public/getoprlastinput", {
+					target_id: 1,
+					opr_id: sessionStorage.userid,
+					paper_id: parent.paper_id
+				},
+				function(data) {
+					for(item of data) {
+						ptype_id = item.ptype_id,
+							setprop(item.prop_id, item.prop_name);
+					}
+				});
+
+		}
+
+		ue_statement.ready(function() {
+			if(quest_id != null) ue_statement.setContent(quest_info.statement);
+		});
+
+		ue_question.ready(function() {
+			if(quest_id != null) ue_question.setContent(quest_info.question);
+		});
+
+		ue_analysis.ready(function() {
+			if(quest_id != null) ue_analysis.setContent(quest_info.analysis);
+		});
+
+		if(quest_id != null) {
+			//读取并设置题目属性和答案
+			_ajax_post("GET", server_url + "/quest/getpropquestinfo", {
+					quest_id: quest_id,
+					is_pre: is_pre
+				},
+				SetPreQuestInfo);
+		}
+
+		//读取题型
+		_ajax_post("GET", server_url + "/quest/getquesttype", {},
+			function(data) {
+				var html = '';
+				for(var item of data) {
+					html += '<option value="' + item.type_id + '">' + item.type_name + '</option>';
+				}
+
+				$("#f_type_id").html(html);
+
+				$("#container").show();
+
+				if(quest_id != null) {
+					$("#f_type_id").val(quest_info.type_id); //设置题型
+					$("#f_show_type").val(quest_info.show_type);
+					SetQuestUi(quest_info.type_id);
+				}
+
+				//隐藏数值类型的输入框
+				$(".form-group[data_type='1']").each(function(index) {
+					$(this).hide();
+				});
+
+				//新增题目数值类型输入框默认值0.5
+				if(quest_id == null) {
+					$("input[data_type='1']").each(function(index) {
+						$(this).val('0.5');
+					});
+				}
+			});
+	});
+</script>

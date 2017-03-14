@@ -1,0 +1,401 @@
+<% include header.html %>
+<div class="wrapper wrapper-content">
+	<div class="ibox float-e-margins">
+		<div class="col-sm-7">
+			<div class="ibox-content">
+				<form role="form" class="form-inline">
+					<div class="form-group">
+                        <div class="input-group clockpicker" data-autoclose="true">
+                            <input id="selremark" type="text" placeholder="属性检索条件" class="form-control" readonly="readonly" onclick="selectproptype();" style="background-color: white;">
+                            <span class="input-group-addon">
+                            	<i onclick="clearsearch();" class="fa fa-remove"></i>
+                            </span>
+                        </div>
+					</div>  
+					<button class="btn btn-primary" onclick="retrieve();" type="button"><i class="fa fa-search"></i>&nbsp;检索</button>
+					<button id="btn_add" type="button" class="btn btn-primary"><i class="fa fa-plus"></i>&nbsp;添加关联名称</button>
+				</form>
+				<table id="bstable"></table>
+			</div>
+		</div>
+		<div class="col-sm-5">
+			<div class="ibox-content">
+				<div class="text-right">
+					<button id="btnAddRelate" class="btn btn-primary"><i class="fa fa-plus"></i>&nbsp;添加关联属性</button>
+				</div>
+				<table id="bstable_relate" class="table-fixed"></table>
+			</div>
+		</div>
+	</div>
+</div>
+<!--弹出编辑窗口-->
+<div id="edit-form" class="container" hidden="hidden" style="width: 800px;">
+	<div class="panel panel-primary">
+		<div class="panel-body">
+			<form role="form" class="form-horizontal">
+				<div class="form-group" data_type="0">
+					<label class="col-sm-2 control-label label_ptype_id_2">属性对象</label>
+					<div class="col-sm-9">
+						<input id="target_remark" class="form-control" type="text" style="background-color: white;" readonly="readonly" onclick="selecttarget();" />
+					</div>
+				</div>
+
+				<div class="form-group">
+					<label class="col-md-2 control-label text-right">关联名称</label>
+					<div class="col-md-9">
+						<input id="relate_name" class="form-control" type="text" />
+					</div>
+				</div>
+
+				<div class="text-right ">
+					<button class="btn btn-sm btn-w-m btn-default" type="button" onclick="layer.close(edit_index);">取消</button>
+					<button id="bntSubmit" type="button" class="btn btn-sm btn-w-m btn-primary">确定</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+<% include footer.html %>
+<script>
+	var current_row;
+	var edit_index;
+	var ptype_id = 0;
+	var relate_id = 0;
+	var target_id;
+	var ptypes = "";
+	var detail_id = null;
+	var target_ids;
+	var prop_type_selector_checked = true;
+	var prop_type_ids =[];
+
+	function clearsearch(){
+		prop_type_ids = [];
+		$("#selremark").val(''); 
+		
+	}
+	function selecttarget() {
+		layer.open({
+			type: 2,
+			title: "选择对象",
+			area: ['450px', '550px'],
+			content: '/admin/sys_target_selector',
+		});
+	}
+
+	function selectproptype() {
+		layer.open({
+			type: 2,
+			title: "选择属性类别",
+			area: ['450px', '600px'],
+			content: '/admin/prop_type_selector',
+		});
+	}
+
+
+	function getptype(parm_ptype_id, parm_ptype_name) {
+		ptype_id = parm_ptype_id;
+		if(ptype_id == -1) ptype_id = 'k';
+
+		layer.open({
+			type: 2,
+			title: "选择【" + parm_ptype_name + "】",
+			area: ['450px', '550px'],
+			content: '/admin/relate_property_selector',
+		});
+	}
+
+	function ShowEdit() {
+		edit_index = layer.open({
+			type: 1,
+			title: "属性关联设置",
+			shadeClose: true,
+			maxmin: true,
+			area: ['800px', '260px'],
+			content: $('#edit-form'),
+		});
+	}
+
+	function setproptype(remark,ids){
+		prop_type_ids = ids;
+		$("#selremark").val(remark);
+	}
+	
+	function settarget(remark, ids) {
+		target_ids = ids;
+		$("#target_remark").val(remark);
+	}
+
+	function updatechild(remark, ids) {
+		if(!relate_id) {
+			alert('请先选择关联纲要!');
+			return;
+		}
+		if(!ptype_id) {
+			alert('属性类别无效!');
+			return;
+		}
+
+		if(ptype_id == 'k') ptype_id = -1;
+		var data = {
+			detail_id: detail_id,
+			relate_id: relate_id,
+			ptype_id: ptype_id,
+			remark: remark,
+			ids: JSON.stringify(ids)
+		}
+
+		_ajax_post("POST", server_url + "/baseinfo/updaterelatedetail", data,
+			function() {
+				_toastr_ok("添加成功!");
+				retrieveDetail();
+			});
+	}
+
+	function retrieveDetail() {
+		_ajax_post("GET", server_url + "/baseinfo/getrelatedetail", {
+				relate_id: relate_id
+			},
+			function(data) {
+				$("#bstable_relate").bootstrapTable('load', data);
+			});
+	}
+
+	//初始化表格
+	function initTable() {
+		$('#bstable').bootstrapTable({
+			columns: [{
+				field: 'row_index',
+				align: 'center',
+				width: 40,
+				formatter: function(value, row, index) {
+					return index + 1;
+				}
+			}, {
+				field: 'relate_name',
+				title: '关联名称',
+				align: 'left',				
+				halign: 'center',
+				formatter: function(value, row, index) {
+					return '<a class="edit">' + value + '</a>';
+				},
+				events: operateEvents
+			}, {
+				field: 'target_remark',
+				title: '应用对象',
+				align: 'left',
+				halign:'center',
+				width: 160,
+			}, {
+				field: 'remark',
+				title: '调用属性',
+				align: 'left',
+				halign:'center',
+				width: 260
+			}, {
+				field: 'del',
+				title: '删除',
+				align: 'center',
+				width: 60,
+				formatter: function(value, row, index) {
+					return '<a class="delete">删除</a>';
+				},
+				events: operateEvents
+			}]
+		}).on('click-row.bs.table', function(e, row, $element) {
+			relate_id = row.relate_id;
+			$('.success').removeClass('success');
+			$($element).addClass('success');
+
+			retrieveDetail();
+		});
+
+		$('#bstable_relate').bootstrapTable({
+			columns: [{
+				field: 'row_index',
+				align: 'center',
+				width: 40,
+				formatter: function(value, row, index) {
+					return index + 1;
+				}
+			}, {
+				field: 'ptype_name',
+				title: '属性项',
+				align: 'left',				
+				halign: 'center',
+				width: 100,
+				formatter: function(value, row, index) {
+					return '<a class="edit">' + value + '</a>';
+				},
+				events: detail_operateEvents
+			}, {
+				field: 'remark',
+				title: '位置',
+				align: 'left',				
+				halign: 'center',
+				formatter: function(value, row, index) {
+					return '<a class="edit">' + value + '</a>';
+				},
+				events: detail_operateEvents
+			}, {
+				field: 'del',
+				title: '删除',
+				align: 'center',
+				width: 60,
+				formatter: function(value, row, index) {
+					return '<a class="delete">删除</a>';
+				},
+				events: detail_operateEvents
+			}]
+		}).on('click-row.bs.table', function(e, row, $element) {
+			relate_id = row.relate_id;
+			$('.success').removeClass('success');
+			$($element).addClass('success');
+		});
+
+		retrieve();
+	}
+
+	//表格操作按钮点击事件处理
+	window.operateEvents = {
+		'click .edit': function(e, value, row, index) {
+			relate_id = row.relate_id;
+			current_row = row;
+			$("#target_remark").val(row.target_remark);
+			$("#relate_name").val(row.relate_name);
+			ShowEdit();
+		},
+		'click .delete': function(e, value, row, index) {
+			var layer_index;
+			layer_index = layer.confirm('您确定要删除【' + row.relate_name + '】吗？', {
+				btn: ['确定', '取消']
+			}, function() {
+				_ajax_post("POST", server_url + "/baseinfo/delrelate", {
+						relate_id: row.relate_id
+					},
+					function() {
+						_toastr_ok('删除成功');
+						retrieve();
+					});
+				layer.close(layer_index);
+			}, function() {
+				layer.close(layer_index);
+			});
+		}
+	};
+
+	window.detail_operateEvents = {
+		'click .edit': function(e, value, row, index) {
+			detail_id = row.detail_id;
+			relate_id = row.relate_id;
+			ptype_id = row.ptype_id;
+			layer.open({
+				type: 2,
+				title: "选择【" + row.ptype_name + "】",
+				area: ['450px', '550px'],
+				content: '/admin/relate_property_selector',
+			});
+		},
+		'click .delete': function(e, value, row, index) {
+			var layer_index;
+			layer_index = layer.confirm('您确定要删除【' + row.remark + '】吗？', {
+				btn: ['确定', '取消']
+			}, function() {
+				_ajax_post("POST", server_url + "/baseinfo/delrelatedetail", {
+						relate_id: row.relate_id,
+						detail_id: row.detail_id
+					},
+					function() {
+						_toastr_ok('删除成功');
+						retrieveDetail();
+					});
+				layer.close(layer_index);
+			}, function() {
+				layer.close(layer_index);
+			});
+		}
+	};
+
+	//刷新获取数据
+	function retrieve() {
+		relate_id = null;
+		$("#bstable_relate").bootstrapTable('removeAll');
+		$("#bstable").bootstrapTable('removeAll');
+		
+		var parm ={
+			prop_type_ids:JSON.stringify(prop_type_ids)
+		};
+		
+		_ajax_post("GET", server_url + "/baseinfo/getrelate", parm,
+			function(data) {
+				$("#bstable").bootstrapTable('load', data);
+			});
+	}
+
+	$(document).ready(function() {
+		//绑定添加按钮事件
+		$("#btn_add").click(function() {
+			relate_id = null;
+			current_row = null;
+			$("#target_remark").val('');
+			$("#relate_name").val('');
+			target_ids = null;
+			ShowEdit();
+		});
+
+		$("#btnAddRelate").click(function() {
+			detail_id = null;
+			if(!relate_id) {
+				alert('请先选择关联纲要!');
+				return;
+			}
+
+			var detail = $("#bstable_relate").bootstrapTable('getData');
+			ptypes = '';
+			for(var i of detail) {
+				if(ptypes.length > 0) ptypes += ",";
+				ptypes += i.ptype_id;
+			}
+
+			target_id = $("#f_target").val();
+			layer.open({
+				type: 2,
+				title: "选择类别",
+				area: ['500px', '550px'],
+				content: '/admin/public_selector',
+			});
+		});
+
+		$("#bntSubmit").click(function() {
+			var relate_name = $("#relate_name").val();
+			var target_remark = $("#target_remark").val();
+			if(relate_name.length < 1) {
+				alert('请设置名称!');
+			}
+
+			var relate = {
+				relate_id: relate_id,
+				target_ids: JSON.stringify(target_ids),
+				organ_id: sessionStorage.organ_id,
+				relate_name: relate_name,
+				target_remark: target_remark
+			};
+
+			_ajax_post("POST", server_url + "/baseinfo/updaterelate", relate,
+				function() {
+					layer.close(edit_index);
+					_toastr_ok('保存成功!');
+					retrieve();
+				});
+		});
+
+		_ajax_post("GET", server_url + "/baseinfo/getsystarget", {},
+			function(data) {
+				var html = '';
+				for(item of data) {
+					html += '<option value="' + item.target_id + '">' + item.target_name + '</option>';
+				}
+				$("#f_target").html(html);
+			});
+		initTable();
+	});
+</script>

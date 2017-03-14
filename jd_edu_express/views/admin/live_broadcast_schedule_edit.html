@@ -1,0 +1,164 @@
+<% include header.html %>
+
+<link href="css/plugins/datapicker/datepicker3.css" rel="stylesheet">
+<link href="css/plugins/clockpicker/clockpicker.css" rel="stylesheet">
+
+<div class="container">
+    <div class="panel panel-primary">
+        <div class="panel-body">
+            <form class="form-horizontal">
+                <div class="row">
+                    <div class="col-md-12">
+
+                        <div class="form-group" id="data_1">
+                            <label class="col-sm-2 text-right">直播日期</label>
+                            <div class="col-sm-2">
+                                <div class="input-group date">
+                                    <input id="scheduled_data" type="text" class="form-control">
+                                    <span class="input-group-addon"><i class="fa fa-calendar"></i></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="col-sm-2 text-right">直播时间</label>
+                            <div class="col-sm-2">
+                                <div class="input-group clockpicker" data-autoclose="true">
+                                    <input id="scheduled_time" type="text" class="form-control">
+                                    <span class="input-group-addon">
+                                            <i class="fa fa-clock-o"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="col-sm-2 text-right">学科</label>
+                            <div class="col-sm-10">
+                                <input id="subject" class="form-control" type="text"/>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="col-sm-2 text-right">介绍</label>
+                            <div class="col-sm-10">
+                                <script id="ue_description" type="text/plain"></script>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-12">
+                    <div class="text-center">
+                        <button class="btn btn-sm btn-w-m btn-default" onclick="parent.layer.close(index);">取消</button>
+                        <button id="bntSubmit" type="button" class="btn btn-sm btn-w-m btn-primary">确定</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<% include footer.html %>
+<script type="text/javascript" src="js/plugins/ueditor/lang/zh-cn/zh-cn.js"></script>
+<script type="text/javascript" src="js/plugins/ueditor/ueditor.config.js"></script>
+<script type="text/javascript" src="js/plugins/ueditor/ueditor.all.js"></script>
+<script type="text/javascript" src="js/plugins/ueditor/kityformula-plugin/addKityFormulaDialog.js"></script>
+<script type="text/javascript" src="js/plugins/ueditor/kityformula-plugin/getKfContent.js"></script>
+<script type="text/javascript" src="js/plugins/ueditor/kityformula-plugin/defaultFilterFix.js"></script>
+
+<script type="text/javascript" src="js/plugins/datapicker/bootstrap-datepicker.js"></script>
+<script type="text/javascript" src="js/plugins/clockpicker/clockpicker.js"></script>
+
+<script>
+    var scheduled_id;
+    var ue_description;
+    var index;
+
+    $(document).ready(function () {
+
+        $("#data_1 .input-group.date").datepicker({
+            todayBtn: "linked",
+            keyboardNavigation: !1,
+            forceParse: !1,
+            calendarWeeks: !0,
+            autoclose: !0
+        })
+
+        $(".clockpicker").clockpicker()
+
+        index = parent.layer.getFrameIndex(window.name);
+
+        //点击确定按钮，保存数据
+        $("#bntSubmit").click(function () {
+            var description = ue_description.getContent();
+            var subject = $("#subject").val();
+            var scheduled_data = $("#scheduled_data").val();
+            var scheduled_time = $("#scheduled_time").val();
+
+            if (description.length < 1) {
+                _toastr('请录入介绍内容!', "bottom-right", "error", false);
+                return;
+            }
+
+            if (scheduled_data.length < 1) {
+                _toastr('请录入预告日期!', "bottom-right", "error", false);
+                return;
+            }
+
+            if (scheduled_time.length < 1) {
+                _toastr('请录入预告时间!', "bottom-right", "error", false);
+                return;
+            }
+
+            if (subject.length < 1) {
+                _toastr('请录入学科!', "bottom-right", "error", false);
+                return;
+            }
+
+
+            //保存预告
+            var parm = {
+                scheduled_id: scheduled_id,
+                subject: subject,
+                description: description,
+                scheduled_time:scheduled_data + " " + scheduled_time,
+                opr_id: sessionStorage.getItem('userid')
+            };
+
+            var post_url = server_url + "/educate/updatelivebroadcastschedule";
+
+            console.log(JSON.stringify(parm));
+            _ajax_post("POST", post_url, parm, function () {
+                parent.retrieve();
+                parent.layer.close(index);
+            });
+        });
+
+        ue_description = UE.getEditor('ue_description', {
+            initialFrameHeight: 360
+        });
+
+        //如果是修改，需读取数据
+        scheduled_id = parent.scheduled_id;
+
+        ue_description.ready(function () {
+            if (scheduled_id != null) {
+                if(parent.current_row){
+                    ue_description.setContent(parent.current_row.description);
+                    $("#subject").val(parent.current_row.subject);
+                    var scheduled_datatime = new Date(parent.current_row.scheduled_time).format("yyyy-MM-dd hh:mm")
+                    $("#scheduled_data").val(scheduled_datatime.split(" ")[0]);
+                    $("#scheduled_time").val(scheduled_datatime.split(" ")[1]);
+                }else{
+                    _ajax_post("GET",server_url + "/educate/getlivebroadcastschedule",{scheduled_id:scheduled_id},
+                    function (data) {
+                        ue_description.setContent(data.rows[0].description);
+                        $("#subject").val(data.rows[0].subject);
+                    })
+                }
+
+                initTable();
+            }
+        });
+    });
+</script>

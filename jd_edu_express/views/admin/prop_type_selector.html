@@ -1,0 +1,107 @@
+<% include selector_header.html %>
+<style>
+	.btn-sm {
+		width: 100px;
+	}
+</style>
+<div class="container">
+	<div class="panel panel-primary">
+		<div id="div_title" class="input-group text-right">
+			<span class="input-group-btn">
+				<button id="btn_ok" type="button" class="btn btn btn-primary">确定</button>
+				<button id="btn_cancel" type="button" class="btn btn btn-white">取消</button>
+			</span>
+		</div>
+		<div class="panel-body">
+			<div class="row border-bottom white-bg">
+				<div class="col-sm-12">
+					<table id="bstable"></table>
+				</div>
+			</div>
+
+		</div>
+	</div>
+</div>
+
+<% include selector_footer.html %>
+<script>
+	var layer_index;
+	var ptype_id, ptype_name;
+
+	function initTable() {
+		var cols = [];
+		if(parent.prop_type_selector_checked) {
+			cols.push({
+				checkbox: true,
+			});
+		}
+
+		cols.push({
+			field: 'ptype_name',
+			title: '属性类别',
+			align: 'left',
+			halign: 'center',
+//			width: 200
+		});
+
+		$('#bstable').bootstrapTable({
+			showHeader: false,
+			height: 450,
+			columns: cols,
+		}).on('click-row.bs.table', function(e, row, $element) {
+			$('.success').removeClass('success');
+			$($element).addClass('success');
+		}).on('dbl-click-row.bs.table', function(e, row, $element) {
+			ptype_id = row.ptype_id;
+			ptype_name = row.ptype_name;
+
+			$('.success').removeClass('success');
+			$($element).addClass('success');
+			
+			if(!parent.prop_type_selector_checked) {
+				SelectItem();
+			}
+		});
+
+		_ajax_post("GET", server_url + "/property/getproptype", {is_apply:0},
+			function(data) {
+				$("#bstable").bootstrapTable('load', data);
+			});
+	}
+
+	//选择属性
+	function SelectItem() {
+		if(!ptype_id) {
+			alert('请选择属性类别!');
+			return;
+		}
+		parent.layer.close(layer_index);
+	}
+	
+	$(document).ready(function() {
+		if(!parent.prop_type_selector_checked) {
+			$("#div_title").hide();
+		}
+		
+		layer_index = parent.layer.getFrameIndex(window.name);
+
+		$("#btn_cancel").click(function() {
+			parent.layer.close(layer_index);
+		})
+
+		//答案确定按钮事件
+		$("#btn_ok").click(function() {
+			var sel = $("#bstable").bootstrapTable('getSelections');
+			var remark = ''
+			for(var item of sel){
+				if(remark.length > 0) remark +='/';
+				remark += item.ptype_name;				
+			}
+			
+			parent.setproptype(remark,sel);
+			parent.layer.close(layer_index);
+		});
+
+		initTable();
+	});
+</script>

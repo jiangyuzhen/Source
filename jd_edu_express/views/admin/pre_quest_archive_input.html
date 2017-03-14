@@ -1,0 +1,158 @@
+<% include header.html %>
+<div class="wrapper wrapper-content">
+	<div class="ibox float-e-margins">
+		<button type="button" class="btn btn-primary" onclick="retrieve();"><i class="fa fa-refresh"></i>&nbsp;刷新</button>
+		<button id="btn_add" type="button" class="btn btn-primary"><i class="fa fa-plus"></i>&nbsp;添加</button>
+		<div class="ibox-content">
+			<table id="bstable" class="table-fixed"></table>
+		</div>
+	</div>
+</div>
+<% include footer.html %>
+
+<script>
+	var archive_id;
+	var current_row = null;
+	var offset = 0;
+
+	//初始化题目表格
+	function initTable() {
+		$('#bstable').bootstrapTable({
+			ajax: ajaxRequest,
+			pagination: true,
+			pageNumber: 1,
+			pageSize: 10,
+			pageList: [10, 20, 40],
+			sidePagination: 'server',
+			columns: [{
+				field: 'row_index',
+				title: '序号',
+				align: 'center',
+				width: 60,
+				formatter:function(value,row,index){
+					return offset + index + 1;
+				}
+			},{
+				field: 'title',
+				title: '标题',
+				align: 'left',
+				halign: 'center'
+			}, {
+				field: 'opr_name',
+				title: '操作者',
+				align: 'center',
+				width: 60
+			}, {
+				field: 'opr_date',
+				title: '操作时间',
+				align: 'center',
+				width: 140,
+				formatter: function(value, row, index) {
+					return new Date(value).format("yyyy-MM-dd hh:mm:ss");
+				},
+			}, {
+				field: 'opr',
+				title: '操作',
+				align: 'center',
+				width: 120,
+				formatter: function(value, row, index) {
+					return '<a class="edit">修改</a>&nbsp<a class="delete">删除</a>';
+				},
+				events: operateEvents
+			}],
+		}).on('click-row.bs.table', function(e, row, $element) {
+			$('.success').removeClass('success');
+			$($element).addClass('success');
+		});
+	}
+
+	//表格操作按钮点击事件处理
+	window.operateEvents = {
+		'click .edit': function(e, value, row, index) {
+			archive_id = row.archive_id;
+			current_row = row;
+			Edit();
+		},
+		'click .delete': function(e, value, row, index) {
+			var layer_index;
+			layer_index = layer.confirm('您确定要删除当前数据吗？', {
+				btn: ['确定', '取消']
+			}, function() {
+				_ajax_post("POST", server_url + "/quest/deletearchive", {
+						archive_id: row.archive_id
+					},
+					retrieve);
+				layer.close(layer_index);
+			}, function() {
+				layer.close(layer_index);
+			});
+		}
+	};
+
+	//自定义AJAX方法
+	function ajaxRequest(params) {
+		offset = params.data.offset;
+		$.ajax({
+			type: "GET",
+			url: server_url + "/quest/getarchive",
+			headers: {
+				token: sessionStorage.getItem('token')
+			},
+			data: params.data,
+			error: function(XMLHttpRequest, textStatus, errorThrown) {
+				_toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+			},
+			success: function(ret) {
+				if(ret.errno == 0) {
+					params.success(ret.data);
+				} else {
+					if(ret.errno == 1001) {
+						$.each(ret.errmsg, function(i, n) {
+							_toastr(n, "bottom-right", "error", false);
+						})
+					} else {
+						_toastr(ret.errmsg, "bottom-right", "error", false);
+					}
+				}
+			}
+		});
+	}
+
+	//刷新
+	function retrieve() {
+		$('#bstable').bootstrapTable('refresh');
+	}
+
+	//打开题目编辑界面
+	function Edit() {
+		layer.open({
+			type: 2,
+			title: "材料题编辑",
+			shadeClose: true,
+			maxmin: true,
+			area: ['100%', '100%'],
+			content: '/admin/archive_edit',
+		});
+	}
+	
+	//操作类型字段显示
+	function operateFormatter(value, row, index) {
+		return ['<div class="btn-group">',
+			'<a data-toggle="modal" href="prop_type.html#modal-form" class="btn btn-xs btn-primary edit">修改</a>',
+			'</div>',
+			'<div class="btn-group">',
+			'<button class="btn btn-danger btn-xs delete">删除</button>',
+			'</div>'
+		].join('');
+	}
+
+	$(document).ready(function() {
+		//绑定添加按钮事件
+		$("#btn_add").click(function() {
+			archive_id = null;
+			Edit();
+		});
+
+		initTable();
+	});
+</script>

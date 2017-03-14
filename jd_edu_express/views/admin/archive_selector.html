@@ -1,0 +1,139 @@
+<% include selector_header.html %>
+<div class="container">
+	<div class="panel panel-primary">
+		<div class="panel-body">
+			<div class="input-group">
+				<input id="input_search" type="text" placeholder="材料" class="input form-control">
+				<span class="input-group-btn">
+                            <button id="btn_ok" type="button" class="btn btn btn-primary">确定</button>
+                            <button id="btn_cancel" type="button" class="btn btn btn-white">取消</button>
+                        </span>
+			</div>
+			<br />
+
+			<div class="row border-bottom white-bg">
+				<div class="col-sm-12">
+					<table id="bstable"></table>
+				</div>
+			</div>
+
+		</div>
+	</div>
+</div>
+<% include selector_footer.html %>
+<script>
+	var layer_index;
+	var archive_id, title;
+	var request_url = server_url + "/quest/getarchiveselector";
+	
+	//初始选择器表格
+	function initTable() {
+		$('#bstable').bootstrapTable({
+			ajax: ajaxRequest,
+			pageNumber: 1,
+			pageSize: 50,
+			height: 400,
+			showPaginationSwitch: false,
+			sidePagination: 'server',
+			columns: [{
+				field: 'title',
+				title: '标题',
+				align: 'left',
+				halign: 'center',
+				width: 200
+			}],
+			queryParams: function(params) {
+				params.limit = 50;
+				params.offset = 0;
+				params.sort = params.sort;
+				params.order = params.order;
+				params.search = $("#input_search").val();
+				return params;
+			},
+		}).on('click-row.bs.table', function(e, row, $element) {
+			archive_id = row.archive_id;
+			title = row.title;
+
+			$('.success').removeClass('success');
+			$($element).addClass('success');
+		}).on('dbl-click-row.bs.table', function(e, row, $element) {
+			archive_id = row.archive_id;
+			title = row.title;
+
+			$('.success').removeClass('success');
+			$($element).addClass('success');
+
+			SelectItem();
+		});
+	}
+
+	//自定义AJAX方法
+	function ajaxRequest(params) {
+		$.ajax({
+			type: "GET",
+			url: request_url,
+			headers: {
+				token: sessionStorage.getItem('token')
+			},
+			data: params.data,
+			error: function(XMLHttpRequest, textStatus, errorThrown) {
+				_toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+			},
+			success: function(ret) {
+				if(ret.errno == 0) {
+					params.success(ret.data);
+
+				} else {
+					if(ret.errno == 1001) {
+						$.each(ret.errmsg, function(i, n) {
+							_toastr(n, "bottom-right", "error", false);
+						})
+					} else {
+						_toastr(ret.errmsg, "bottom-right", "error", false);
+					}
+				}
+			}
+		});
+	}
+
+	//选择
+	function SelectItem() {
+		var data = $('#bstable').bootstrapTable('getData');
+		if(data.length == 0) return;
+
+		if(data.length == 1) {
+			archive_id = data[0].archive_id;
+			title = data[0].title;
+		} else {
+			if(!archive_id) {
+				alert('请选择材料!');
+				return;
+			}
+		}
+
+		//调用父窗口设置属性方法
+		parent.setarchive(archive_id, title);
+		parent.layer.close(layer_index);
+	}
+	
+	$(document).ready(function() {
+		layer_index = parent.layer.getFrameIndex(window.name);
+
+		$("#btn_cancel").click(function() {
+			parent.layer.close(layer_index);
+		})
+
+		//答案确定按钮事件
+		$("#btn_ok").click(function() {
+			SelectItem();
+		});
+
+		$("#input_search").keydown(function(event) {
+			if(event.which == 13)
+				$('#bstable').bootstrapTable('refresh');
+		});
+
+		initTable();
+		$("input").focus();
+	});
+</script>

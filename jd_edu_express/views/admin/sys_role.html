@@ -1,0 +1,204 @@
+<% include header.html %>
+<link rel="stylesheet" href="css/plugins/ztree/zTreeStyle/zTreeStyle.css" />
+
+<div class="wrapper wrapper-content">
+	<div class="row">
+		<div class="col-sm-4">
+			<div class="ibox float-e-margins">
+				<button id="btn_add" class="btn btn-primary"><i class="fa fa-plus"></i>&nbsp;添加</button>
+				<div class="ibox-content">
+					<table id="bstable"></table>
+				</div>
+			</div>
+		</div>
+		<div class="col-sm-8">
+			<div class="ibox float-e-margins text-right">
+				<button id="btn_save" class="btn btn-primary"><i class="fa fa-save"></i>&nbsp;保存</button>
+
+				<div class="ibox-content text-left">
+					<div id="ztree" class="ztree"></div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!--弹出编辑窗口-->
+<div id="edit-form" class="container" hidden="hidden" style="width: 500px;">
+	<div class="panel panel-primary">
+		<div class="panel-body">
+			<form role="form" class="form-post form-horizontal">
+				<input id="edit_role_id" name="role_id" class="form-control" type="hidden">
+				<div class="form-group">						
+					<label class="col-md-3 control-label text-right">角色名称</label>
+					<div class="col-md-9">
+						<input id="edit_role_name" name="role_name" class="form-control">
+					</div>
+				</div>			
+				<div class="text-right ">
+					<button class="btn btn-sm btn-w-m btn-default" type="button" onclick="layer.close(edit_index);">取消</button>
+					<button id="bntSubmit" type="button" class="btn btn-sm btn-w-m btn-primary">确定</button>					
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+<% include footer.html %>
+
+<script type="text/javascript" src="js/plugins/ztree/jquery.ztree.core.min.js" ></script>
+<script type="text/javascript" src="js/plugins/ztree/jquery.ztree.excheck.min.js" ></script>
+<script>
+	var edit_index;
+	var role_id = 0;
+	var setting = {
+		check: {
+			enable: true
+		},
+		data: {
+			simpleData: {
+				enable: true
+			}
+		}
+	};
+		
+	function ShowEdit() {
+		edit_index = layer.open({
+			type: 1,
+			title: "角色编辑",
+			shadeClose: true,
+			maxmin: true,
+			area: ['500px', '180px'],
+			content: $('#edit-form'),
+		});
+	}
+
+	function reloadTree() {
+		_ajax_post(
+			"GET",
+			server_url + "/public/getsysrolefunc", {
+				role_id: role_id
+			},
+			function(data){
+				$("#ztree").empty();
+				$.fn.zTree.init($("#ztree"), setting, data);
+				
+				var treeObj = $.fn.zTree.getZTreeObj("ztree");
+				treeObj.expandAll(true);
+			});
+	}
+	
+	//初始化表格
+	function initTable() {
+		$('#bstable').bootstrapTable({
+			columns: [{
+				field: 'row_index',
+				align: 'center',
+				width: 40,
+				formatter:function(value,row,index){
+					return index + 1;
+				}
+			},{
+				field: 'role_name',
+				title: '角色',
+				align: 'center',
+				formatter: function(value, row, index) {
+					return '<a class="edit">' + value + '</a>';
+				},
+				events: operateEvents
+			}, {
+				field: 'del',
+				title: '删除',
+				align: 'center',
+				width: 40,
+				formatter: function(value, row, index) {
+					return '<a class="delete"><i class="fa fa-remove"></i></a>';
+				},
+				events: operateEvents
+			}]
+		}).on('click-row.bs.table', function(e, row, $element) {
+			$('.success').removeClass('success');
+			$($element).addClass('success');
+			role_id = row.role_id;
+			reloadTree();
+		});
+
+		retrieve();
+	}
+
+	//表格操作按钮点击事件处理
+	window.operateEvents = {
+		'click .edit': function(e, value, row, index) {
+			$('#edit_role_id').val(row.role_id);
+			$('#edit_role_name').val(row.role_name);
+			ShowEdit();
+		},
+		'click .delete': function(e, value, row, index) {
+			var layer_index;
+			layer_index = layer.confirm('您确定要删除【' + row.role_name + '】吗？', {
+				btn: ['确定', '取消']
+			}, function() {
+				_ajax_post("POST", server_url + "/public/delsysrole", {
+						role_id: row.role_id
+					},
+					function() {
+						_toastr_ok('删除成功');
+						retrieve();
+					});
+				layer.close(layer_index);
+			}, function() {
+				layer.close(layer_index);
+			});
+		}
+	};
+
+	//刷新获取数据
+	function retrieve() {
+		_ajax_post("GET", server_url + "/public/getsysrole", {},
+			function(data) {
+				$("#bstable").bootstrapTable('load', data);
+			});
+	}
+
+	$(document).ready(function() {
+		//绑定添加按钮事件
+		$("#btn_add").click(function() {
+			$('#edit_role_id').val('');
+			$('#edit_role_name').val('');
+			ShowEdit();
+		});
+
+		$("#bntSubmit").click(function() {		
+			_ajax_post("POST", server_url + "/public/updatesysrole",
+				$('.form-post').serialize(),
+				function() {
+					layer.close(edit_index);
+					_toastr_ok('保存成功!');
+					retrieve();
+				});
+		});
+
+		$("#btn_save").click(function(){
+			var zTree = $.fn.zTree.getZTreeObj("ztree");
+			var treenodes = zTree.getCheckedNodes(true);
+			
+			var role_func = [];
+			for(var item of treenodes){
+				if(item.children) continue;
+				role_func.push({
+					role_id:role_id,
+					func_id:item.id
+				});	
+			}
+			
+			_ajax_post("POST", server_url + "/public/updaterolefunc",{
+					role_id:role_id,
+					role_func:JSON.stringify(role_func)
+				},
+				function() {
+					_toastr_ok('保存成功!');
+				});			
+		})
+		
+		initTable();	
+	});
+</script>

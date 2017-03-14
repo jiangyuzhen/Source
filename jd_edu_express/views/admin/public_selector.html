@@ -1,0 +1,77 @@
+<% include selector_header.html %>
+
+<div class="container">
+	<div class="panel panel-primary">
+		<div class="panel-body">
+			<div class="row border-bottom white-bg">
+				<div class="ibox float-e-margins">
+					<div class="ibox-content">
+						<table id="bstable"></table>
+					</div>
+				</div>
+			</div>
+
+		</div>
+	</div>
+</div>
+<% include selector_footer.html %>
+
+<script>
+	var layer_index;
+	var ptype_id;
+	var prop_id, prop_name;
+	var target_id = 0;
+	var ptypes = '';
+
+	//初始化表格
+	function initTable() {
+		$('#bstable').bootstrapTable({
+			columns: [{
+				field: 'row_index',
+				align: 'center',
+				width: 40,
+				formatter: function(value, row, index) {
+					return index + 1;
+				}
+			}, {
+				field: 'ptype_name',
+				title: '属性类别',
+				align: 'center'
+			}]
+		}).on('click-row.bs.table', function(e, row, $element) {
+			$('.success').removeClass('success');
+			$($element).addClass('success');
+		}).on('dbl-click-row.bs.table', function(e, row, $element) {			
+			parent.getptype(row.ptype_id, row.ptype_name);
+			parent.layer.close(layer_index);
+		});
+
+		retrieve();
+	}
+
+	//刷新获取数据
+	function retrieve() {
+		_ajax_post("GET", server_url + "/property/getproptypeselect", {
+				target_id: target_id,
+				organ_id: sessionStorage.organ_id,
+				ptypes:ptypes
+			},
+			function(data) {
+				$("#bstable").bootstrapTable('load', data);
+			});
+	}
+
+	$(document).ready(function() {
+		layer_index = parent.layer.getFrameIndex(window.name);
+
+		$("#btn_cancel").click(function() {
+			parent.layer.close(layer_index);
+		})
+
+		ptype_id = parent.ptype_id;
+		target_id = parent.target_id;
+		ptypes = parent.ptypes;
+		
+		initTable();
+	});
+</script>

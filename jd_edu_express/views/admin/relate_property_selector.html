@@ -1,0 +1,127 @@
+<% include selector_header.html %>
+<link rel="stylesheet" href="css/plugins/ztree/zTreeStyle/zTreeStyle.css" />
+<div class="container">
+	<div class="panel panel-primary">
+		<div class="panel-body">
+			<div class="input-group text-right">
+				<!--<input id="input_search" type="text" placeholder="查找属性" class="input form-control">-->
+				<span class="input-group-btn">
+                            <button id="btn_ok" type="button" class="btn btn btn-primary">确定</button>
+                            <button id="btn_cancel" type="button" class="btn btn btn-white">取消</button>
+                        </span>
+			</div>
+
+			<div class="row border-bottom white-bg">
+				<div class="ibox float-e-margins">
+					<div class="ibox-content">
+						<div id="ztree" class="ztree"></div>
+					</div>
+				</div>
+			</div>
+
+		</div>
+	</div>
+</div>
+<% include selector_footer.html %>
+<script type="text/javascript" src="js/plugins/ztree/jquery.ztree.core.min.js"></script>
+<script type="text/javascript" src="js/plugins/ztree/jquery.ztree.excheck.min.js"></script>
+
+<script>
+	var layer_index;
+	var ptype_id;
+	var prop_id, prop_name;
+	var request_url = server_url + "/property/getpropertyztree";
+	var target_id = 0;
+	var detail_id = null;
+
+	var setting = {
+		check: {
+			enable: true
+		},
+		data: {
+			simpleData: {
+				enable: true
+			}
+		}
+	};
+
+	//加载jstree
+	function loadtree(data) {
+		$("#ztree").empty();
+		$.fn.zTree.init($("#ztree"), setting, data);
+	}
+
+	//选择属性
+	function SelectItem() {
+		var zTree = $.fn.zTree.getZTreeObj("ztree");
+		var sel = zTree.getCheckedNodes(true);
+
+		if(!sel.length) return false;
+
+		var remark = '';
+		var ids = [];
+		var checked_ids = [];
+		var count = 0;
+
+		for(var i of sel) {
+			//			alert(JSON.stringify(i.getCheckStatus()));
+
+			if(i.getCheckStatus().half) continue;
+			checked_ids.push({
+				prop_id: i.id
+			});
+
+			var lb_find = false;
+			for(var id of checked_ids) {
+				if(i.pId == id.prop_id) {
+					lb_find = true;
+					break;
+				}
+			}
+
+			if(lb_find) continue;
+
+			count++;
+			if(count < 5) {
+				if(remark.length > 0) {
+					remark += ",";
+				}
+				remark += i.name;
+			}
+			ids.push({
+				prop_id: i.id
+			});
+		}
+
+		parent.updatechild(remark, ids);
+		parent.layer.close(layer_index);
+	}
+
+	$(document).ready(function() {
+		layer_index = parent.layer.getFrameIndex(window.name);
+
+		$("#btn_cancel").click(function() {
+			parent.layer.close(layer_index);
+		})
+
+		$("#btn_ok").click(function() {
+			SelectItem();
+		});
+
+		ptype_id = parent.ptype_id;
+		target_id = parent.target_id;
+		ptypes = parent.ptypes;
+		detail_id = parent.detail_id;
+
+		if(ptype_id == -1 || ptype_id == 'k') request_url = server_url + "/baseinfo/getknowledgeztree";
+
+		_ajax_post(
+			"GET",
+			request_url, {
+				ptype_id: ptype_id,
+				target_id: target_id,
+				detail_id: detail_id,
+			},
+			loadtree);
+	});
+</script>

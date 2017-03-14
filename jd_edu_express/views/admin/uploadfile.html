@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+</head>
+
+<body>
+<div>
+    <form method='post' action='/teacher/upload' enctype='multipart/form-data'>
+        选择图片：<input name="avatar" accept="image/jpeg" type='file' width="400px"/>
+        <br>
+        <br>
+        <br>
+        <input name="floderName" type="hidden" value="<%= floderName %>"/>
+        <input type='submit' value='提交' width="200px"/>
+    </form>
+</div>
+
+
+</body>
+</html>

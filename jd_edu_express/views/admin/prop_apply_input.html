@@ -1,0 +1,462 @@
+<% include header.html %>
+<div class="wrapper-content float-e-margins" hidden="hidden">
+	<table id="bstable" class="table-fixed"></table>
+</div>
+
+<!--表格工具栏-->
+<div id="toolbar">
+	<div class="form-inline">
+		<label>应用目录属性</label>
+		<select id="f_prop_type" class="form-control"></select>
+		<button class="btn btn-primary" onclick="retrieveBill();"><i class="fa fa-refresh"></i>&nbsp;刷新</button>
+		<button id="btn_add" class="btn btn-primary"><i class="fa fa-plus"></i>&nbsp;添加应用目录</button>
+	</div>
+</div>
+<div id="container" hidden="hidden">
+	<div class="panel-body">
+		<form class="form-horizontal">
+			<input id="opr_times" type="hidden" />
+			<div id="ptype"></div>
+			<div class="form-group">
+				<label class="col-md-2 control-label text-right">名称</label>
+				<div class="col-md-10">
+					<input id="bill_name" class="form-control" type="text" />
+				</div>
+			</div>
+
+			<div class="text-center">
+				<button class="btn btn-sm btn-w-m btn-default" type="button" onclick="layer.close(edit_index);">取消</button>
+				<button id="btnSubmit" type="button" class="btn btn-sm btn-w-m btn-primary">确定</button>
+			</div>
+		</form>
+	</div>
+</div>
+<% include footer.html %>
+
+<script>
+	var bill_id = null;
+	var offset = 0;
+	var prop_html = '';
+	var choosedprop = [];
+	var target_id;
+	var ptype_id;
+
+	function AddProp(item) {
+		//获取点击的属性ID
+		ptype_id = $(item).attr("ptype_id");
+		if(!ptype_id) return;
+
+		//获取之前选择的属性
+		choosedprop = [];
+
+		//重新生成目录属性值			
+		$(".prop-chosen-choices").each(function(index) {
+			var values = [];
+			var ptype_id = $(this).attr("ptype_id");
+			$(".prop-search-choice[ptype_id='" + ptype_id + "']").each(function(index) {
+				values.push($(this).attr("data-value"));
+			});
+			$("input[id='ptype_id_" + ptype_id + "']").val(values.join(','));
+		});
+
+		var is_beforeptype = true;
+		$("#ptype input").each(function(index) {
+			var pre_ptype_id = $(this).attr("name");
+			if(ptype_id == pre_ptype_id) {
+				is_beforeptype = false;
+				return;
+			}
+			if(!is_beforeptype) return;
+
+			var prop_value = $(this).val();
+			var data_type = $(this).attr("data_type");
+
+			if(data_type != 0) return;
+			if(prop_value.length < 1) return;
+
+			prop_ids = prop_value.split(",")
+			for(var i in prop_ids) {
+				if(prop_ids[i] != '') {
+					var prop_id = 0;
+					if(data_type == 0) prop_id = prop_ids[i];
+
+					choosedprop.push({
+						ptype_id: pre_ptype_id,
+						prop_id: prop_id,
+					});
+
+				}
+			}
+		});
+
+		layer.open({
+			type: 2,
+			title: "选择属性",
+			area: ['450px', '550px'],
+			content: '/admin/property_selector',
+		});
+	}
+
+	function setprop(parm_prpo_id, parm_prpo_name) {
+		//检查是否存在重复的值，如果有则不再添加
+		var lb_repeat = false;
+		$(".prop-search-choice[ptype_id='" + ptype_id + "']").each(function(index) {
+			var data_value = $(this).attr("data-value");
+			data_value = data_value.replace('"', '')
+
+			if(parm_prpo_id == data_value) {
+				lb_repeat = true;
+				return false;
+			}
+		});
+		if(lb_repeat) return;
+
+		//添加选择项目
+		var temp = '<li class="prop-search-choice" ptype_id="' + ptype_id + '" data-value=' + parm_prpo_id + '><span>' + parm_prpo_name + '</span><a class="prop-search-choice-close" data-value=' + parm_prpo_id + '></a></li>';
+		$("[add_ptype_id='" + ptype_id + "']").before(temp);
+
+		var values = [];
+		$(".prop-search-choice[ptype_id='" + ptype_id + "']").each(function(index) {
+			values.push($(this).attr("data-value"));
+		});
+
+		//选择后将值重新赋值在隐藏的input上
+		$("input[id='ptype_id_" + ptype_id + "']").val(values.join(','));
+		getbillName();
+	}
+
+	function getbillName() {
+		var paper_name = '';
+		//构造题目名称
+
+		//获取属性名称
+		var paper_name = '';
+		$(".prop-search-choice span").each(function(index) {
+			if(paper_name.length > 0) paper_name += "-";
+			var path_name = $(this).html();
+
+			//至提取最后一端
+			var tmps = path_name.split('&gt;');
+			path_name = tmps[tmps.length - 1];
+
+			paper_name += path_name;
+		})
+
+		$("#bill_name").val(paper_name);
+
+		$("input[id!='bill_name'][data_type='2']").each(function() {
+			if($(this).val().length < 1) return;
+
+			if(paper_name.length > 0) paper_name += "-";
+			paper_name += $(this).val();
+		})
+
+		$("#bill_name").val(paper_name);
+	}
+
+	//初始化表格
+	function initTable() {
+		$('#bstable').bootstrapTable({
+			ajax: ajaxRequest,
+			toolbar: "#toolbar",
+			pagination: true,
+			pageNumber: 1,
+			pageSize: 10,
+			pageList: [10, 20, 40],
+			sidePagination: 'server',
+			queryParams: function(params) {
+				params.limit = params.limit;
+				params.offset = params.offset;
+				params.sort = params.sort;
+				params.order = params.order;
+				params.organ_id = sessionStorage.organ_id;
+				params.ptype_id = $("#f_prop_type").val();
+				
+				return params;
+			},
+			columns: [{
+				field: 'row_index',
+				title: '序号',
+				align: 'center',
+				width: 50,
+				formatter: function(value, row, index) {
+					return offset + index + 1;
+				}
+			}, {
+				field: 'bill_name',
+				title: '目录名称',
+				align: 'left',
+				halign: 'center',
+			}, {
+				field: 'opr_name',
+				title: '操作者',
+				align: 'center',
+				halign: 'center',
+				width: 100,
+			}, {
+				field: 'opr_date',
+				title: '修改时间',
+				align: 'center',
+				width: 150,
+				formatter: function(value, row, index) {
+					return new Date(value).format("yyyy-MM-dd hh:mm:ss");
+				},
+			}, {
+				field: 'opr_times',
+				title: '修改次数',
+				align: 'center',
+				width: 100,
+			}, {
+				field: 'opr',
+				title: '操作',
+				align: 'center',
+				width: 200,
+				formatter: function(value, row, index) {
+					return '<a class="edit">修改目录</a>&nbsp;<a class="delete">删除目录</a>&nbsp;<a class="edit_k">修改内容</a>';
+				},
+				events: operateEvents
+			}],
+		}).on('click-row.bs.table', function(e, row, $element) {
+			$('.success').removeClass('success');
+			$($element).addClass('success');
+		});
+	}
+
+	window.operateEvents = {
+		'click .edit': function(e, value, row, index) {
+			bill_id = row.bill_id;
+			$("#bill_name").val(row.bill_name);
+			$("#opr_times").val(row.opr_times);
+			initPropUI();
+			_ajax_post("GET", server_url + "/baseinfo/gettargetpropvalue", {
+					target_id: target_id,
+					key_id: bill_id,
+				},
+				function(data) {
+					for(var item of data) {
+						data_type = $("input[id='ptype_id_" + item.ptype_id + "']").attr('data_type');
+						if(data_type == 0) {
+							ptype_id = item.ptype_id;
+							setprop(item.prop_id, item.path_name);
+						}
+						if(data_type == 1) $("input[id='ptype_id_" + item.ptype_id + "']").val(item.num_value);
+						if(data_type == 2) $("input[id='ptype_id_" + item.ptype_id + "']").val(item.text_value);
+					}
+				});
+			EditBill();
+		},
+		'click .edit_k': function(e, value, row, index) {
+			bill_id = row.bill_id;
+			ptype_id = $("#f_prop_type").val();
+			
+			layer.open({
+				type: 2,
+				title: row.bill_name,
+				area: ['100%', '100%'],
+				content: '/admin/bill_property',
+			});
+		},
+		'click .delete': function(e, value, row, index) {
+			var layer_index;
+			layer_index = layer.confirm('确定要删除当前数据吗？', {
+				btn: ['确定', '取消']
+			}, function() {
+				_ajax_post("POST", server_url + "/property/delpropbill", {
+						target_id:target_id,
+						bill_id: row.bill_id
+					},
+					function() {
+						retrieveBill();
+						_toastr_ok('删除成功!');
+					});
+				layer.close(layer_index);
+			}, function() {
+				layer.close(layer_index);
+			});
+		}
+	};
+
+	//自定义AJAX方法
+	function ajaxRequest(params) {
+		offset = params.data.offset;
+		bill_id = null;
+
+		
+		$.ajax({
+			type: "GET",
+			url: server_url + "/property/querypropbill",
+			headers: {
+				token: sessionStorage.getItem('token')
+			},
+			data: params.data,
+			error: function(XMLHttpRequest, textStatus, errorThrown) {
+				_toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+			},
+			success: function(ret) {
+				if(ret.errno == 0) {
+					params.success(ret.data);
+				} else {
+					if(ret.errno == 1001) {
+						$.each(ret.errmsg, function(i, n) {
+							_toastr(n, "bottom-right", "error", false);
+						})
+					} else {
+						_toastr(ret.errmsg, "bottom-right", "error", false);
+					}
+				}
+			}
+		});
+	}
+
+	function saveData() {
+		var bill_name = $("#bill_name").val();
+		var opr_times = 0;
+		var opr_times = $("#opr_times").val();
+		opr_times++;
+
+		if(!bill_name) {
+			_toastr_err("名称无效!")
+			return;
+		}
+
+		//重新生成目录属性值			
+		$(".prop-chosen-choices").each(function(index) {
+			var values = [];
+			var ptype_id = $(this).attr("ptype_id");
+			$(".prop-search-choice[ptype_id='" + ptype_id + "']").each(function(index) {
+				values.push($(this).attr("data-value"));
+			});
+			$("input[id='ptype_id_" + ptype_id + "']").val(values.join(','));
+		});
+
+		//获取选择的属性值，并判断是否必选
+		var props = [];
+		var check_ok = true;
+		$("#ptype input").each(function(index) {
+			var ptype_id = $(this).attr("name");
+			var prop_value = $(this).val();
+			var data_type = $(this).attr("data_type");
+
+			if(prop_value.length < 1) {
+				return;
+			}
+
+			prop_ids = prop_value.split(",")
+			for(var i in prop_ids) {
+				if(prop_ids[i] != '') {
+					var prop_id = 0;
+					var text_value = '';
+					var num_value = 0;
+
+					if(data_type == 0) prop_id = prop_ids[i];
+					if(data_type == 1) num_value = prop_ids[i];
+					if(data_type == 2) text_value = prop_ids[i];
+
+					props.push({
+						target_id: target_id,
+						ptype_id: ptype_id,
+						prop_id: prop_id,
+						num_value: num_value,
+						text_value: text_value,
+					});
+				}
+			}
+		});
+
+		var post_url = server_url + "/property/updatepropbill";
+
+		_ajax_post("POST", post_url, {
+			target_id:target_id,
+			ptype_id:$("#f_prop_type").val(),
+			bill_id: bill_id,
+			organ_id: sessionStorage.organ_id,
+			bill_name: bill_name,
+			opr_times: opr_times,
+			opr_id: sessionStorage.userid,
+			props: JSON.stringify(props),
+		}, function() {
+			retrieveBill();
+			_toastr_ok("保存成功");
+			layer.close(edit_index);
+		});
+	}
+
+	//刷新
+	function retrieveBill() {
+		bill_id = null;
+		$('#bstable').bootstrapTable('refresh');
+	}
+
+	//打开编辑界面
+	function EditBill() {
+		edit_index = layer.open({
+			type: 1,
+			title: "应用目录编辑",
+			area: ['600px', '460px'],
+			content: $('#container'),
+		});
+	}
+
+	function initPropUI() {
+		$("#ptype").html(prop_html);
+		initPropChoose(AddProp);
+		$("input[id!='bill_name'][data_type='2']").keyup(function() {
+			getbillName();
+		});
+		$("#bill_name").val('');
+	}
+
+	function gettargetprophtml(){
+		var ptype_id = $("#f_prop_type").val();
+		//提取对应对象的属性信息和系统对象id
+		_ajax_post(
+			"GET",
+			server_url + "/property/getsystargetprophtml", {
+				apply_ptype_id: ptype_id
+			},
+			function(data) {
+				prop_html = data[0].prop_html;
+				target_id = data[0].target_id;
+				initPropUI();
+	
+				$(".wrapper-content").show();
+			});		
+	}
+	
+	$(document).ready(function() {
+		//绑定添加按钮事件
+		$("#btn_add").click(function() {
+			bill_id = null;
+			initPropUI();
+			$("#opr_times").val('0');
+			EditBill();
+		});
+
+		$("#btnSubmit").click(function() {
+			saveData();
+		});
+
+		$("#f_prop_type").change(function() {
+			//重新提取对象属性信息			
+			retrieveBill();
+		})
+
+		//初始化应用目录属性选择框
+		_ajax_post("GET", server_url + "/property/getproptype", {
+				is_apply: 1
+			},
+			function(data) {
+				//初始化应用目录选择框
+				var html = '';
+				for(var item of data) {
+					html += '<option value="' + item.ptype_id + '">' + item.ptype_name + '</option>';
+				}
+				$("#f_prop_type").html(html);
+				
+				gettargetprophtml();
+				
+				//初始化表格
+				initTable();				
+			});
+	});
+</script>

@@ -1,0 +1,206 @@
+<% include header.html %>
+<div id="container" class="container" hidden="hidden">
+	<div class="panel panel-primary">
+		<div class="panel-body">
+			<form class="form-horizontal">
+				<input id="f_quest_id" class="form-control" type="hidden">
+
+				<div class="form-group">
+					<label class="col-sm-2 text-right">题干:</label>
+					<div class="col-sm-10">
+						<div id="statement"></div>
+					</div>
+					<label class="col-sm-2 text-right">问题:</label>
+					<div class="col-sm-10">
+						<div id="question"></div>
+					</div>
+				</div>
+
+				<div class="form-group">
+					<label class="col-sm-2 text-right">回答:</label>
+					<div class="col-sm-10">
+						<div id="quest_tk" hidden="hidden">
+							<div class="form-group">'
+								<div class="col-sm-9">
+									<input id="input_quest_tk" class="form-control" type="text">
+								</div>
+							</div>
+						</div>
+
+						<div id="quest_xz">
+							<table id="bstable_answer" class="table-fixed"></table>
+						</div>
+					</div>
+
+				</div>
+				<div class="form-group">
+					<label class="col-sm-2 text-right"></label>
+					<div class="col-sm-10">
+						<button id="btnAnswer" type="button" onclick="AnsewrQuestion()" class="btn btn-sm btn-primary">提交</button>
+						<span id="result"></span>
+					</div>
+				</div>
+
+				<div id="form-analysis" class="form-group" hidden="hidden">
+					<label class="col-sm-2 text-right">解析</label>
+					<div class="col-sm-10">
+						<div id="analysis"></div>
+					</div>
+				</div>
+				<div class="text-center">
+					<button class="btn btn-sm btn-w-m btn-default" onclick="parent.layer.close(index);">取消</button>
+					<button id="btnImport" type="button" class="btn btn-sm btn-w-m btn-primary" onclick="parent.ImportQuest(quest_id);" hidden="hidden">引入</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+
+<!--答案表格工具栏-->
+<div id="toolbar">
+</div>
+<% include footer.html %>
+
+<script>
+	var quest_id;
+	var index;
+	var current;
+	var is_pre = 1;
+	var target_id = 1;
+	var quest_info;
+	var answer_data;
+
+	//回答问题
+	function AnsewrQuestion() {
+		$("#btnAnswer").addClass('disabled').prop('disabled', true);
+		//如果是选择题目
+		$("#form-analysis").show()
+		$('#bstable_answer').bootstrapTable('showColumn', 'current');
+
+		var pre_quest_answer;
+		if(quest_info.type_id == 1 || quest_info.type_id == 2) {
+			pre_quest_answer = $("#bstable_answer").bootstrapTable('getSelections');
+		}
+
+		//处理填空题和主观题的答案
+		if(quest_info.type_id == 3 || quest_info.type_id == 4) {
+			var input_answer = $("#input_quest_tk").val();
+			if(input_answer.length < 1 && quest_type_id == 3) {
+				_toastr('请输入正确答案!', "bottom-right", "error", false);
+				return;
+			}
+
+			pre_quest_answer = [{
+				answer: input_answer,
+				current: 1
+			}];
+		};
+		
+		var is_ok = true;
+		
+		if(quest_info.type_id == 1 || quest_info.type_id == 2) {
+			var right_count = 0;
+			for(var item of answer_data){
+				if(item.current == 1) right_count++; 
+				for(var a of pre_quest_answer){
+					if(item.answer_id == a.answer_id && item.current == 0){
+						is_ok = false;
+						break;
+					}
+				}
+			}
+			if(right_count != pre_quest_answer.length) is_ok = false;			
+		};
+
+		if(quest_info.type_id == 3) {
+			if ($("#input_quest_tk").val() != answer_data[0].answer) is_ok = false;
+		}
+		
+		if(!is_ok){
+			$("#result").html('回答错误!');
+		}else{
+			$("#result").html('回答正确!');
+		}
+	}
+
+	//初始化题目表格
+	function initTable() {
+		$('#bstable_answer').bootstrapTable({
+			toolbar: '#toolbar',
+			showHeader: false,
+			columns: [{
+				checkbox: true,
+			}, {
+				field: 'answer',
+				title: '选项',
+				width: 460
+			}, {
+				field: 'current',
+				title: '是否正确',
+				width: 40,
+				align: 'center',
+				visible: false,
+				formatter: function(value, row, index) {
+					if(value == "0") return '';
+					if(value == "1") return '<i class="fa fa-check"></i>';
+				},
+			}],
+		}).on('click-row.bs.table', function(e, row, $element) {
+			$('.success').removeClass('success');
+			$($element).addClass('success');
+		});
+	}
+
+	//设置属性和答案	
+	function SetPreQuestInfo(data) {
+		answer_data = data.answer;
+		if(quest_info.type_id == 1 || quest_info.type_id == 2) $("#bstable_answer").bootstrapTable('append', data.answer);
+	}
+
+	function SetQuestUi(type_id) {
+		$("#quest_tk").hide();
+		$("#quest_xz").hide();
+
+		if(type_id == 1 || type_id == 2) {
+			$("#quest_xz").show();
+		}
+
+		if(type_id == 3) {
+			$("#quest_tk").show();
+		}
+
+		if(type_id == 4) {
+			$("#quest_tk").show();
+		}
+	}
+
+	$(document).ready(function() {
+		index = parent.layer.getFrameIndex(window.name);
+		quest_info = parent.quest_info;
+		is_pre = quest_info.is_pre;
+
+		initTable();
+
+		quest_id = quest_info.quest_id;
+
+		$("#statement").html(quest_info.statement);
+		$("#question").html(quest_info.statement);
+		$("#analysis").html(quest_info.analysis);
+
+		if(parent.paper_id) {
+			$("#btnImport").show();
+		} else {
+			$("#btnImport").hide();
+		}
+
+		//读取并设置题目属性和答案
+		_ajax_post("GET", server_url + "/quest/getpropquestinfo", {
+				quest_id: quest_id,
+				is_pre: is_pre
+			},
+			SetPreQuestInfo);
+
+		$("#container").show();
+		SetQuestUi(quest_info.type_id);
+	});
+</script>

@@ -1,0 +1,112 @@
+<% include header.html %>
+<div class="wrapper wrapper-content">
+    <div class="ibox float-e-margins">
+        <button type="button" class="btn btn-primary" onclick="retrieve();"><i class="fa fa-refresh"></i>&nbsp;刷新</button>
+        <button id="btn_add" type="button" class="btn btn-primary"><i class="fa fa-plus"></i>&nbsp;添加</button>
+        <div class="ibox-content">
+            <table id="bstable" class="table-fixed"></table>
+        </div>
+    </div>
+</div>
+<% include footer.html %>
+
+<script>
+    var scheduled_id;
+    var current_row = null;
+    var offset = 0;
+
+    //初始化题目表格
+    function initTable() {
+        $('#bstable').bootstrapTable({
+            columns: [{
+                field: 'row_index',
+                title: '序号',
+                align: 'center',
+                width: 60,
+                formatter:function(value,row,index){
+                    return offset + index + 1;
+                }
+            },{
+                field: 'scheduled_time',
+                title: '直播时间',
+                align: 'center',
+                width: 140,
+                formatter: function(value, row, index) {
+                    return new Date(value).format("yyyy-MM-dd hh:mm:ss");
+                },
+            },{
+                field: 'subject',
+                title: '学科',
+                align: 'left',
+                halign: 'center'
+            },{
+                field: 'opr',
+                title: '操作',
+                align: 'center',
+                width: 120,
+                formatter: function(value, row, index) {
+                    return '<a class="edit">修改</a>&nbsp<a class="delete">删除</a>';
+                },
+                events: operateEvents
+            }]
+        }).on('click-row.bs.table', function(e, row, $element) {
+            $('.success').removeClass('success');
+            $($element).addClass('success');
+        });
+    }
+
+    //表格操作按钮点击事件处理
+    window.operateEvents = {
+        'click .edit': function(e, value, row, index) {
+            scheduled_id = row.scheduled_id;
+            current_row = row;
+            Edit();
+        },
+        'click .delete': function(e, value, row, index) {
+            var layer_index;
+            layer_index = layer.confirm('您确定要删除当前数据吗？', {
+                btn: ['确定', '取消']
+            }, function() {
+                _ajax_post("POST", server_url + "/educate/dellivebroadcastschedule", {
+                            scheduled_id: row.scheduled_id
+                        },
+                        retrieve);
+                layer.close(layer_index);
+            }, function() {
+                layer.close(layer_index);
+            });
+        }
+    };
+
+    //刷新获取数据
+    function retrieve() {
+        _ajax_post("GET", server_url + "/educate/getlivebroadcastschedule", {
+                    opr_id:sessionStorage.getItem('userid')
+                },
+                function(data) {
+                    $("#bstable").bootstrapTable('load', data);
+                });
+    }
+
+    //打开题目编辑界面
+    function Edit() {
+        layer.open({
+            type: 2,
+            title: "直播预告编辑",
+            shadeClose: true,
+            maxmin: true,
+            area: ['100%', '100%'],
+            content: '/admin/live_broadcast_schedule_edit',
+        });
+    }
+
+    $(document).ready(function() {
+        //绑定添加按钮事件
+        $("#btn_add").click(function() {
+            archive_id = null;
+            Edit();
+        });
+
+        initTable();
+    });
+</script>

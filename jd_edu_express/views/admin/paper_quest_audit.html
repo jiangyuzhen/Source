@@ -1,0 +1,140 @@
+<% include header.html %>
+<div class="wrapper-content float-e-margins" hidden="hidden">
+	<table id="bstable_quest" class="table-fixed"></table>
+</div>
+
+<div id="toolbar_quest">
+	<div class="form-inline">
+		<button class="btn btn-default" onclick="parent.layer.close(index);">&nbsp;取消</button>
+		<button class="btn btn-primary" onclick="retrieve()"><i class="fa fa-refresh"></i>&nbsp;刷新</button>
+	</div>
+</div>
+
+<% include footer.html %>
+
+<script>
+	var index = 0;
+	var paper_id = null;
+	var is_Audit = true;
+	var current_row = null;
+	var offset = 0;
+	var prop_html = '';
+	var pre_question;
+	var quest_info = 0;
+
+	//初始化题目表格
+	function initTable() {
+		$('#bstable_quest').bootstrapTable({
+			pagination: false,
+			toolbar: "#toolbar_quest",
+			columns: [{
+				field: 'row_index',
+				title: '序号',
+				align: 'center',
+				width: 50,
+				formatter: function(value, row, index) {
+					return index + 1;
+				}
+			}, {
+				field: 'type_name',
+				title: '题型',
+				align: 'left',
+				halign: 'center',
+				width: 60
+			}, {
+				field: 'statement',
+				title: '题干',
+				align: 'left',
+				halign: 'center',
+			}, {
+				field: 'is_pre',
+				title: '题目状态',
+				align: 'center',
+				width: 100,
+				formatter: function(value, row, index) {
+					if(value == 1) value = '未审核';
+					if(value == 0) value = '已审核';
+					return value;
+				}
+			}, {
+				field: 'is_import',
+				title: '录入方式',
+				align: 'center',
+				width: 100,
+				formatter: function(value, row, index) {
+					if(value == 1) value = '引入';
+					if(value == 0) value = '录入';
+					return value;
+				}
+			}, {
+				field: 'opr',
+				title: '操作',
+				align: 'center',
+				width: 150,
+				formatter: function(value, row, index) {
+					return '<a class="edit">审核</a>';
+				},
+				events: questoperateEvents
+			}],
+		}).on('click-row.bs.table', function(e, row, $element) {
+			$('.success').removeClass('success');
+			$($element).addClass('success');
+		});
+		
+		retrieve();
+	}
+
+	//表格操作按钮点击事件处理
+	window.questoperateEvents = {
+		'click .edit': function(e, value, row, index) {
+			if (row.is_pre == 0){
+				alert('该题目已经审核!');
+				return;
+			}
+			
+			pre_question = row;
+			quest_id = row.quest_id;
+			quest_info = 0;
+			if(row.is_pre == 0) quest_info = 1;			
+			EditQuest();
+		},
+	};
+	
+	function retrieve() {
+		_ajax_post("GET", server_url + "/quest/getpaperquest", {
+				paper_id: paper_id
+			},
+			function(data) {
+				$("#bstable_quest").bootstrapTable('load', data);
+			});
+	}
+
+	//打开题目编辑界面
+	function EditQuest() {
+		layer.open({
+			type: 2,
+			title: "题目编辑",
+			shadeClose: true,
+			maxmin: true,
+			area: ['100%', '100%'],
+			content: '/admin/pre_quest_edit',
+		});
+	}
+
+	$(document).ready(function() {
+		index = parent.layer.getFrameIndex(window.name);
+		paper_id = parent.paper_id;
+
+		initTable();
+
+		_ajax_post(
+			"GET",
+			server_url + "/property/getsystargetprophtml", {
+				target_id: 1
+			},
+			function(data) {
+				prop_html = data[0].prop_html;
+				$(".wrapper-content").show();
+			});
+	});
+</script>

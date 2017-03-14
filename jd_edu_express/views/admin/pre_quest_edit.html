@@ -1,0 +1,972 @@
+<% include header.html %>
+<div id="container" class="container" hidden="hidden">
+    <div class="panel panel-primary">
+        <div class="panel-body">
+            <form class="form-horizontal">
+                <input id="f_quest_id" class="form-control" type="hidden">
+                <div id="ptype" class="col-md-11"></div>
+                <div class="form-group">
+                    <label class="col-sm-2 text-right">题型</label>
+                    <div class="col-sm-2">
+                        <select id="f_type_id" class="form-control"></select>
+                    </div>
+                    <label class="col-sm-1 text-right">展示方式</label>
+                    <div class="col-sm-2">
+                        <select id="f_show_type" class="form-control">
+                            <option value="1">图文</option>
+                            <option value="2">语音</option>
+                            <option value="3">图文+语音</option>
+                        </select>
+                    </div>
+
+                    <label class="col-sm-1 control-label">材料</label>
+                    <div class="col-sm-3">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="input_archive" readonly="readonly"
+                                   style="background-color: white;">
+                            <div class="input-group-btn">
+                                <button id="btn_archive_clear" type="button" class="btn btn-white">
+                                    <i class="fa fa-remove"></i>
+                                </button>
+                                <button id="btn_archive_edit" type="button" class="btn btn-white">
+                                    <i class="fa fa-edit"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="col-sm-2 text-right">题干</label>
+                    <div class="col-sm-10">
+                        <script id="ue_statement" type="text/plain"></script>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="col-sm-2 text-right"></label>
+                    <div class="col-sm-10">
+                        <a id="btn_diffcheck" class="btn btn-w-m btn-primary ">相似题目检查</a>
+                        <span id="quest_diff"></span>
+                    </div>
+                </div>
+
+                <div id="question" class="form-group">
+                    <label class="col-sm-2 text-right">问题</label>
+                    <div class="col-sm-10">
+                        <script id="ue_question" type="text/plain"></script>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="col-sm-2 text-right">答案</label>
+                    <div class="col-sm-10">
+                        <div id="quest_tk" hidden="hidden">
+                            <div class="form-group">'
+                                <div class="col-sm-9">
+                                    <input id="input_quest_tk" class="form-control" type="text">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="quest_pd" hidden="hidden">
+                            <a id="btn-check1" class="btn btn-w-m btn-white btn-check"><i class="fa fa-check"></i>
+                                正确</a>
+                            <a id="btn-check2" class="btn btn-w-m btn-white btn-check"><i class="fa fa-remove"></i>
+                                错误</a>
+                        </div>
+                        <div id="quest_xz">
+                            <table id="bstable_answer" class="table-fixed"></table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="col-sm-2 text-right">解析</label>
+                    <div class="col-sm-10">
+                        <script id="ue_analysis" type="text/plain"></script>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <button class="btn btn-sm btn-w-m btn-default" onclick="parent.layer.close(index);">取消</button>
+                    <button id="btnSubmit" type="button" class="btn btn-sm btn-w-m btn-primary">确定</button>
+                    <button id="btnAuditNo" type="button" class="btn btn-sm btn-w-m btn-danger">审核不通过</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="simquest" class="container" hidden="hidden" style="width: 800px;">
+    <div class="panel panel-primary">
+        <div class="panel-body">
+            <form role="form" class="form-post form-horizontal">
+                <table id="bstable_simquest"></table>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!--答案表格工具栏-->
+<div id="toolbar">
+    <div class="form-inline">
+        <a id="btn_answer_add" class="btn btn-sm btn-primary">
+            <i class="fa fa-plus"></i>&nbsp;添加选项
+        </a>
+    </div>
+</div>
+<% include footer.html %>
+<script type="text/javascript" src="js/plugins/ueditor/lang/zh-cn/zh-cn.js"></script>
+<script type="text/javascript" src="js/plugins/ueditor/ueditor.config.js"></script>
+<script type="text/javascript" src="js/plugins/ueditor/ueditor.all.js"></script>
+<script type="text/javascript" src="js/plugins/ueditor/kityformula-plugin/addKityFormulaDialog.js"></script>
+<script type="text/javascript" src="js/plugins/ueditor/kityformula-plugin/getKfContent.js"></script>
+<script type="text/javascript" src="js/plugins/ueditor/kityformula-plugin/defaultFilterFix.js"></script>
+
+<script>
+    var paper_id;
+    var quest_id;
+    var archive_id;
+    var ue_statement, ue_analysis, ue_question;
+    var index;
+    var ue_answer_content = "",
+            current;
+    var ptype_id;
+    var is_Audit = false;
+    var is_pre = 1;
+    var target_id = 1;
+    var choosedprop = [];
+    var simquest;
+    var prop_html;
+    var show_import = false;
+    var row_index;
+    var prop_ids;
+
+    //初始化题目表格
+    function initTable() {
+        //初始化答案列表
+        $('#bstable_answer').bootstrapTable({
+            toolbar: '#toolbar',
+            columns: [{
+                field: 'answer',
+                title: '选项内容',
+                formatter: function (value, row, index) {
+                    return '<a class="edit">' + value + '</a>';
+                },
+                events: answerEvents
+            }, {
+                field: 'current',
+                title: '是否正确',
+                width: 100,
+                align: 'center',
+                formatter: function (value, row, index) {
+                    if (value == "0") return '';
+                    if (value == "1") return '<i class="fa fa-check"></i>';
+                }
+            }, {
+                field: "del",
+                title: '删除',
+                width: 40,
+                align: 'center',
+                formatter: function (value, row, index) {
+                    return '<a class="delete"><i class="fa fa-remove"></i></a>';
+                },
+                events: answerEvents
+            }]
+        }).on('click-row.bs.table', function (e, row, $element) {
+            $('.success').removeClass('success');
+            $($element).addClass('success');
+        });
+
+        ue_statement = UE.getEditor('ue_statement', {
+            initialFrameHeight: 160
+        });
+
+        ue_question = UE.getEditor('ue_question', {
+            initialFrameHeight: 160
+        });
+
+        ue_analysis = UE.getEditor('ue_analysis', {
+            initialFrameHeight: 120
+        });
+
+        if (parent.paper_id) show_import = true;
+        $('#bstable_simquest').bootstrapTable({
+            columns: [{
+                field: 'row_index',
+                align: 'center',
+                width: 40,
+                formatter: function (value, row, index) {
+                    return index + 1;
+                }
+            }, {
+                field: 'statement',
+                title: '题干',
+                align: 'left',
+                halign: 'center',
+                formatter: function (value, row, index) {
+                    return '<a class="edit">' + value + '</a>';
+                },
+                events: simquestEvents
+            }, {
+                field: 'is_pre',
+                title: '审核状态',
+                align: 'center',
+                width: 100,
+                formatter: function (value, row, index) {
+                    if (value == 0) return '已审核';
+                    return '未审核';
+                }
+            }, {
+                field: 'same_rate',
+                title: '相似度',
+                width: 100,
+                align: 'center',
+                formatter: function (value, row, index) {
+                    return changeToPercent(value);
+                }
+            }, {
+                field: "操作",
+                title: '引入',
+                width: 50,
+                align: 'center',
+                visible: show_import,
+                formatter: function (value, row, index) {
+                    return '<a class="import">引入</a>';
+                },
+                events: simquestEvents
+            }]
+        }).on('click-row.bs.table', function (e, row, $element) {
+            $('.success').removeClass('success');
+            $($element).addClass('success');
+        });
+
+    }
+
+    //表格操作按钮点击事件处理
+    window.answerEvents = {
+        'click .edit': function (e, value, row, index) {
+            row_index = index;
+            current = row.current;
+
+            ue_answer_content = row.answer;
+            showAnswerEdit();
+        },
+        'click .delete': function (e, value, row, index) {
+            var layer_index;
+            //询问框
+            layer_index = layer.confirm('您确定要删除当前答案吗？', {
+                btn: ['确定', '取消']
+            }, function () {
+                $("#bstable_answer").bootstrapTable('removeByIndex', {
+                    index: index
+                });
+                layer.close(layer_index);
+            }, function () {
+                layer.close(layer_index);
+            });
+        }
+    };
+
+    //表格操作按钮点击事件处理
+    window.simquestEvents = {
+        'click .edit': function (e, value, row, index) {
+            quest_info = row;
+            layer.open({
+                type: 2,
+                title: '题目预览',
+                shadeClose: false,
+                maxmin: false,
+                area: ['900px', '90%'],
+                content: '/admin/quest_show'
+            });
+        },
+        'click .import': function (e, value, row, index) {
+            var layer_index;
+            //询问框
+            layer_index = layer.confirm('您确定要引入当前题目吗？', {
+                btn: ['确定', '取消']
+            }, function () {
+                ImportQuest(row.quest_id);
+                layer.close(layer_index);
+            }, function () {
+                layer.close(layer_index);
+            });
+        }
+    };
+
+    function ImportQuest(quest_id) {
+        var questlist = [];
+
+        questlist.push({
+            paper_id: parent.paper_id,
+            quest_id: quest_id,
+            is_import: 1
+        });
+
+        _ajax_post("POST", server_url + "/quest/addpaperquest", {
+                    paper_id: parent.paper_id,
+                    questlist: JSON.stringify(questlist)
+                },
+                function () {
+                    parent.retrieve();
+                    parent.layer.close(index);
+                });
+    }
+
+    //弹出答案编辑窗口
+    function showAnswerEdit() {
+        layer.open({
+            type: 2,
+            title: "答案编辑",
+            area: ['820px', '560px'],
+            content: '/admin/answer_edit'
+        });
+    }
+
+    function showSimQuest() {
+        layer.open({
+            type: 1,
+            title: "相似题目",
+            shadeClose: true,
+            maxmin: true,
+            area: ['800px', '500px'],
+            content: $('#simquest')
+        });
+    }
+    //设置答案
+    function setAnswerValue(answer_content, current) {
+        var rows = [];
+        var data = {
+            answer: answer_content,
+            current: current
+        };
+        rows.push(data);
+
+        if (row_index < 0) {
+            $("#bstable_answer").bootstrapTable('append', rows);
+        } else {
+            $("#bstable_answer").bootstrapTable('updateRow', {
+                index: row_index,
+                row: data
+            });
+        }
+    }
+
+    //点击属性选择器
+    function ChooseProp(item) {
+        //获取点击的属性ID
+        ptype_id = $(item).attr("ptype_id");
+        if (!ptype_id) return;
+
+        //获取之前选择的属性
+        choosedprop = [];
+
+        //重新生成目录属性值
+        $(".prop-chosen-choices").each(function (index) {
+            var values = [];
+            var ptype_id = $(this).attr("ptype_id");
+            $(".prop-search-choice[ptype_id='" + ptype_id + "']").each(function (index) {
+                values.push($(this).attr("data-value"));
+            });
+            $("input[id='ptype_id_" + ptype_id + "']").val(values.join(','));
+        });
+
+        var is_beforeptype = true;
+        $("#ptype input").each(function (index) {
+            var pre_ptype_id = $(this).attr("name");
+            if (ptype_id == pre_ptype_id) {
+                is_beforeptype = false;
+                return;
+            }
+            if (!is_beforeptype) return;
+
+            var prop_value = $(this).val();
+            var data_type = $(this).attr("data_type");
+
+            if (data_type != 0) return;
+            if (prop_value.length < 1) return;
+
+            prop_ids = prop_value.split(",");
+            for (var i in prop_ids) {
+                if (prop_ids[i] != '') {
+                    var prop_id = 0;
+                    if (data_type == 0) prop_id = prop_ids[i];
+
+                    choosedprop.push({
+                        ptype_id: pre_ptype_id,
+                        prop_id: prop_id
+                    });
+                }
+            }
+        });
+
+        layer.open({
+            type: 2,
+            title: "选择属性",
+            area: ['400px', '550px'],
+            content: '/admin/property_selector'
+        });
+    }
+
+    function setprop(parm_prpo_id, parm_prpo_name) {
+        //检查是否存在重复的值，如果有则不再添加
+        var lb_repeat = false;
+
+        $(".prop-search-choice[ptype_id='" + ptype_id + "']").each(function (index) {
+            var data_value = $(this).attr("data-value");
+            data_value = data_value.replace('"', '');
+
+            if (parm_prpo_id == data_value) {
+                lb_repeat = true;
+                return false;
+            }
+        });
+        if (lb_repeat) return;
+
+        //添加选择项目
+        var temp = '<li class="prop-search-choice" ptype_id="' + ptype_id + '" data-value=' + parm_prpo_id + '><span>' + parm_prpo_name + '</span><a class="prop-search-choice-close" data-value=' + parm_prpo_id + '></a></li>';
+        $("[add_ptype_id='" + ptype_id + "']").before(temp);
+
+        var values = [];
+        $(".prop-search-choice[ptype_id='" + ptype_id + "']").each(function (index) {
+            values.push($(this).attr("data-value"));
+        });
+
+        //选择后将值重新赋值在隐藏的input上
+        $("input[id='ptype_id_" + ptype_id + "']").val(values.join(','));
+    }
+
+    //设置属性和答案
+    function SetPreQuestInfo(data) {
+        //设置属性
+        for (var item of data.prop_value) {
+            data_type = $("input[id='ptype_id_" + item.ptype_id + "']").attr('data_type');
+            if (data_type == 0) {
+                ptype_id = item.ptype_id;
+                setprop(item.prop_id, item.path_name);
+            }
+            if (data_type == 1) $("input[id='ptype_id_" + item.ptype_id + "']").val(item.num_value);
+            if (data_type == 2) $("input[id='ptype_id_" + item.ptype_id + "']").val(item.text_value);
+        }
+
+        //设置知识点
+        for (var item of data.pre_quest_knowledge) {
+            ptype_id = 'k';
+            setprop(item.kid, item.path_name);
+        }
+
+        //设置答案
+        if (parent.pre_question.type_id == 1) $("#bstable_answer").bootstrapTable('append', data.answer);
+        if (parent.pre_question.type_id == 2) {
+            for (var item of data.answer) {
+                if (item.answer == '正确' && item.current == 1) {
+                    $("#btn-check1").removeClass("btn-white");
+                    $("#btn-check1").addClass("btn-primary");
+                }
+                if (item.answer == '错误' && item.current == 1) {
+                    $("#btn-check2").removeClass("btn-white");
+                    $("#btn-check2").addClass("btn-primary");
+                }
+            }
+        }
+
+        if (parent.pre_question.type_id == 3 || parent.pre_question.type_id == 4) {
+            for (var item of data.answer) {
+                $("#input_quest_tk").val(item.answer)
+            }
+        }
+        $("#container").show();
+    }
+
+    function SetQuestUi(type_id) {
+        $("#quest_pd").hide();
+        $("#quest_tk").hide();
+        $("#quest_xz").hide();
+        //		$("#question").hide();
+
+        if (type_id == 1) {
+            $("#quest_xz").show();
+        }
+
+        if (type_id == 2) {
+            $("#quest_pd").show();
+        }
+
+        if (type_id == 3) {
+            $("#quest_tk").show();
+        }
+
+        if (type_id == 4) {
+            $("#quest_tk").show();
+            //			$("#question").show();
+        }
+    }
+
+    function setarchive(set_id, title) {
+        $("#input_archive").val(title);
+        archive_id = set_id;
+    }
+
+    $(document).ready(function () {
+        index = parent.layer.getFrameIndex(window.name);
+
+        is_Audit = parent.is_Audit; //判断当前界面是录入还是审核
+        is_pre = parent.is_pre; //判断父窗口是提取的已审核题目还是未审核题目
+        paper_id = parent.paper_id;
+
+        if (is_Audit) {
+            $("#btnSubmit").html('审核通过');
+        } else {
+            $("#btnAuditNo").hide();
+            $("#btn_archive_edit").hide();
+        }
+
+        if (parent.quest_info) {
+            if (parent.quest_info == 1) {
+                $("#btnSubmit").hide();
+                $("#btnAuditNo").hide();
+            }
+        }
+
+        //添加答案按钮
+        $("#btn_answer_add").click(function () {
+            row_index = -1;
+
+            ue_answer_content = "";
+            current = 0;
+            showAnswerEdit();
+        });
+
+        $(".btn-check").click(function () {
+            $(".btn-check").removeClass("btn-primary");
+            $(".btn-check").addClass("btn-white");
+            $(this).removeClass("btn-white");
+            $(this).addClass("btn-primary");
+        });
+
+        $("#f_type_id").change(function () {
+            SetQuestUi($(this).val())
+        });
+
+        $("#input_archive").click(function () {
+            layer.open({
+                type: 2,
+                title: "选择材料",
+                area: ['460px', '550px'],
+                content: '/admin/archive_selector'
+            });
+        });
+
+        $("#btn_archive_clear").click(function () {
+            $("#input_archive").val("");
+            archive_id = null;
+        });
+
+        $("#btn_archive_edit").click(function () {
+            if (!archive_id) return;
+
+            layer.open({
+                type: 2,
+                title: "材料题编辑",
+                shadeClose: true,
+                maxmin: true,
+                area: ['100%', '100%'],
+                content: '/admin/archive_edit'
+            });
+        });
+
+        //审核不通过，弹出录入不通过原因
+        $("#btnAuditNo").click(function () {
+            layer.prompt({
+                formType: 2,
+                value: '',
+                title: '请输入原因'
+            }, function (value, index, elem) {
+                if (value.length < 1) {
+                    return;
+                }
+
+                layer.close(index);
+                _ajax_post("POST", server_url + "/quest/auditquestno", {
+                    quest_id: quest_id,
+                    remark: value,
+                    opr_id: sessionStorage.userid
+                }, function (data) {
+                    parent.retrieve(data);
+                    parent.layer.close(index);
+                });
+            });
+        });
+
+        //点击确定按钮，保存数据
+        $("#btnSubmit").click(function () {
+            var quest_type_id = $("#f_type_id").val();
+            var statement = ue_statement.getContent();
+            var question = ue_question.getContent();
+            var answer_memo = "";
+            var analysis = ue_analysis.getContent();
+
+            if (!archive_id) {
+                if (statement.length < 1) {
+                    _toastr('请录入题干内容!', "bottom-right", "error", false);
+                    return;
+                }
+            }
+
+            //重新生成目录属性值
+            $(".prop-chosen-choices").each(function (index) {
+                var values = [];
+                var ptype_id = $(this).attr("ptype_id");
+                $(".prop-search-choice[ptype_id='" + ptype_id + "']").each(function (index) {
+                    values.push($(this).attr("data-value"));
+                });
+                $("input[id='ptype_id_" + ptype_id + "']").val(values.join(','));
+            });
+
+            //获取选择的属性值，并判断是否必选
+            var quest_prop = [];
+            var quest_knowledge = [];
+            var check_ok = true;
+            $("#ptype input").each(function (index) {
+                var ptype_id = $(this).attr("name");
+                var prop_value = $(this).val();
+                var data_type = $(this).attr("data_type");
+
+                if (($(this).attr("choose_required") == 1) && prop_value.length < 1 && data_type == 0) {
+                    _toastr('请录入' + $('.label_ptype_id_' + ptype_id).text() + '!', "bottom-right", "error", false);
+                    check_ok = false;
+                    return false;
+                }
+
+                if (prop_value.length < 1) {
+                    return;
+                }
+
+                prop_ids = prop_value.split(",");
+                for (var i in prop_ids) {
+                    if (prop_ids[i] != '') {
+                        var prop_id = 0;
+                        var text_value = '';
+                        var num_value = 0;
+
+                        if (data_type == 0) prop_id = prop_ids[i];
+                        if (data_type == 1) num_value = prop_ids[i];
+                        if (data_type == 2) text_value = prop_ids[i];
+
+                        //知识点处理
+                        if (ptype_id == 'k') {
+                            quest_knowledge.push({
+                                kid: prop_id
+                            });
+                        } else {
+                            quest_prop.push({
+                                target_id: 1,
+                                ptype_id: ptype_id,
+                                prop_id: prop_id,
+                                num_value: num_value,
+                                text_value: text_value
+                            });
+                        }
+                    }
+                }
+            });
+
+            if (!check_ok) return;
+
+            var pre_quest_answer;
+            //处理选择题答案
+            if (quest_type_id == 1) {
+                //获取答案数据
+                pre_quest_answer = $("#bstable_answer").bootstrapTable('getData');
+
+                var is_ok = false;
+                for (var i of pre_quest_answer) {
+                    if (i.current == 1) {
+                        is_ok = true;
+                        break;
+                    }
+                }
+
+                if (!is_ok) {
+                    _toastr('请录入至少一个正确答案!', "bottom-right", "error", false);
+                    return;
+                }
+            }
+
+            //判断题答案处理
+            if (quest_type_id == 2) {
+                var current1 = 0;
+                var current2 = 0;
+                if ($("#btn-check1").hasClass("btn-primary")) {
+                    current1 = 1;
+                }
+                if ($("#btn-check2").hasClass("btn-primary")) {
+                    current2 = 1;
+                }
+
+                if (current1 == 0 && current2 == 0) {
+                    _toastr('请选择一个正确答案!', "bottom-right", "error", false);
+                    return;
+                }
+                pre_quest_answer = [{
+                    answer: '正确',
+                    current: current1
+                }, {
+                    answer: '错误',
+                    current: current2
+                }];
+            }
+
+            //处理填空题和主观题的答案
+            if (quest_type_id == 3 || quest_type_id == 4) {
+                var input_answer = $("#input_quest_tk").val();
+                if (input_answer.length < 1 && quest_type_id == 3) {
+                    _toastr('请输入正确答案!', "bottom-right", "error", false);
+                    return;
+                }
+
+                pre_quest_answer = [{
+                    answer: input_answer,
+                    current: 1
+                }];
+
+                answer_memo = input_answer;
+            }
+
+            //组织answer_memo
+            if (quest_type_id == 1) {
+                $.each(pre_quest_answer, function (index, value) {
+                    if (value.current == 1) {
+                        answer_memo += value.answer
+                    }
+                })
+            }
+
+            var show_type = $("#f_show_type").val();
+
+            //保存题目
+            var parm = {
+                quest_id: quest_id,
+                type_id: quest_type_id,
+                organ_id: sessionStorage.organ_id,
+                statement: statement,
+                question: question,
+                answer_memo: answer_memo,
+                analysis: analysis,
+                show_type: show_type,
+                archive_id: archive_id,
+                pre_quest_answer: JSON.stringify(pre_quest_answer),
+                prop_value: JSON.stringify(quest_prop),
+                quest_knowledge: JSON.stringify(quest_knowledge),
+                opr_id: sessionStorage.userid,
+                is_pre: is_pre,
+                paper_id: parent.paper_id,
+                sys_opr_id: sessionStorage.userid
+            };
+
+            var post_url = server_url + "/quest/updatequest";
+            if (is_Audit) {
+                parm.opr_id = parent.pre_question.opr_id;
+                parm.opr_date = parent.pre_question.opr_date;
+                parm.auditor_id = sessionStorage.userid;
+                post_url = server_url + "/quest/auditprequest";
+            }
+
+            _ajax_post("POST", post_url, parm, function (data) {
+                parent.retrieve(data);
+                parent.layer.close(index);
+            });
+        });
+
+        //相似题目检查
+        $("#btn_diffcheck").click(function () {
+            $("#quest_diff").html('');
+            var statement = ue_statement.getContent();
+            if (statement.length < 1) {
+                alert('题干内容太短!');
+                return;
+            }
+
+            //重新生成目录属性值
+            $(".prop-chosen-choices").each(function (index) {
+                var values = [];
+                var ptype_id = $(this).attr("ptype_id");
+                $(".prop-search-choice[ptype_id='" + ptype_id + "']").each(function (index) {
+                    values.push($(this).attr("data-value"));
+                });
+                $("input[id='ptype_id_" + ptype_id + "']").val(values.join(','));
+            });
+
+            //获取选择的属性值，并判断是否必选
+            var quest_prop = [];
+            var quest_knowledge = [];
+            var check_ok = true;
+            $("#ptype input").each(function (index) {
+                var ptype_id = $(this).attr("name");
+                var prop_value = $(this).val();
+                var data_type = $(this).attr("data_type");
+
+                if (prop_value.length < 1) {
+                    return;
+                }
+
+                prop_ids = prop_value.split(",");
+                for (var i in prop_ids) {
+                    if (prop_ids[i] != '') {
+                        if (data_type != 0) continue;
+
+                        //知识点处理
+                        if (ptype_id == 'k') {
+                            quest_knowledge.push({
+                                kid: prop_ids[i]
+                            });
+                        } else {
+                            quest_prop.push({
+                                ptype_id: ptype_id,
+                                prop_id: prop_ids[i]
+                            });
+                        }
+                    }
+                }
+            });
+
+            $("#btn_diffcheck").addClass('disabled').prop('disabled', true);
+            $("#quest_diff").html("<img src='img/loading.gif' />");
+            $.ajax({
+                type: "GET",
+                url: server_url + "/stringdiff/getdiffquest",
+                headers: {
+                    token: sessionStorage.getItem('token')
+                },
+                data: {
+                    statement: statement,
+                    quest_id: quest_id,
+                    organ_id: sessionStorage.organ_id,
+                    quest_prop: JSON.stringify(quest_prop),
+                    quest_knowledge: JSON.stringify(quest_knowledge)
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    $("#quest_diff").html('');
+                    setTimeout(function () {
+                        $("#btn_diffcheck").removeClass('disabled').prop('disabled', false);
+                    }, 100);
+                    alert(errorThrown.toString());
+                },
+                success: function (ret) {
+                    $("#quest_diff").html('');
+                    setTimeout(function () {
+                        $("#btn_diffcheck").removeClass('disabled').prop('disabled', false);
+                    }, 100);
+                    if (ret.errno == 0) {
+                        simquest = ret.data;
+                        $("#bstable_simquest").bootstrapTable('removeAll');
+                        $("#bstable_simquest").bootstrapTable('load', simquest);
+                        $("#quest_diff").html("<a onclick='showSimQuest();'>相似度超过80%的题目共<span style='color: red;font-weight:bold'>" + simquest.length + "</span>道</a>!");
+                        if (simquest.length > 0) {
+                            showSimQuest();
+                        }
+                    } else {
+                        alert(err.errmsg);
+                    }
+                }
+            });
+        });
+
+        initTable();
+
+        prop_html = parent.prop_html;
+
+        $("#ptype").html(prop_html);
+        initPropChoose(ChooseProp);
+
+        //如果是修改，需读取数据
+        quest_id = parent.quest_id;
+
+        //如果是新增，提取该操作员最后一次选择的属性
+        if (!quest_id) {
+            _ajax_post("GET", server_url + "/public/getoprlastinput", {
+                        target_id: 1,
+                        opr_id: sessionStorage.userid,
+                        paper_id: parent.paper_id
+                    },
+                    function (data) {
+                        for (item of data) {
+                            if (item.prop_id > 0) {
+                                ptype_id = item.ptype_id;
+                                setprop(item.prop_id, item.path_name);
+                            } else if (item.text_value.length > 0) {
+                                $("input[id='ptype_id_" + item.ptype_id + "']").val(item.text_value);
+                            }
+                            if (item.hide == 1) {
+                                $(".label_ptype_id_" + item.ptype_id + "").hide();
+                                $("ul[ptype_id=" + item.ptype_id + "]").hide();
+                            }
+                        }
+                    });
+        }
+
+        ue_statement.ready(function () {
+            if (quest_id != null) ue_statement.setContent(parent.pre_question.statement);
+        });
+
+        ue_question.ready(function () {
+            if (quest_id != null) ue_question.setContent(parent.pre_question.question);
+        });
+
+        ue_analysis.ready(function () {
+            if (quest_id != null) ue_analysis.setContent(parent.pre_question.analysis);
+        });
+
+        //读取题型
+        _ajax_post("GET", server_url + "/quest/getquesttype", {},
+                function (data) {
+                    var html = '';
+                    for (var item of data) {
+                        html += '<option value="' + item.type_id + '">' + item.type_name + '</option>';
+                    }
+
+                    $("#f_type_id").html(html);
+
+                    //处理必选题目标注红色*
+                    $("#ptype input").each(function (index) {
+                        var ptype_id = $(this).attr("name");
+                        var data_type = $(this).attr("data_type");
+
+                        if (($(this).attr("choose_required") == 1 || is_Audit) && data_type == 0) {
+                            var lable_html = $(".label_ptype_id_" + ptype_id).html();
+                            $(".label_ptype_id_" + ptype_id).html(lable_html + "<span style='color: red;'>*</span>");
+                        }
+                    });
+
+                    if (quest_id != null) {
+                        $("#f_type_id").val(parent.pre_question.type_id); //设置题型
+                        $("#f_show_type").val(parent.pre_question.show_type);
+                        SetQuestUi(parent.pre_question.type_id);
+
+                        //读取并设置题目属性和答案
+                        _ajax_post("GET", server_url + "/quest/getpropquestinfo", {
+                                    quest_id: quest_id,
+                                    is_pre: is_pre
+                                },
+                                SetPreQuestInfo);
+
+                        archive_id = parent.pre_question.archive_id;
+                        $("#input_archive").val(parent.pre_question.title);
+                    }
+
+                    //隐藏数值类型的输入框
+                    $(".form-group[data_type='1']").each(function (index) {
+                        $(this).hide();
+                    });
+
+                    //新增题目数值类型输入框默认值0.5
+                    if (quest_id == null) {
+                        $("input[data_type='1']").each(function (index) {
+                            $(this).val('0.5');
+                        });
+                        $("#container").show();
+                    }
+                });
+    });
+</script>

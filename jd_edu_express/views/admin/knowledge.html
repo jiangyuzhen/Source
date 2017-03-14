@@ -1,0 +1,291 @@
+<% include header.html %>
+<link rel="stylesheet" href="css/plugins/ztree/zTreeStyle/zTreeStyle.css" />
+<div class="wrapper wrapper-content">
+	<div class="ibox float-e-margins">
+		<button type="button" class="btn btn-default" onclick="parent.layer.close(index);"></i>&nbsp;取消</button>
+		<div class="btn-group">
+			<button data-toggle="dropdown" class="btn btn-primary dropdown-toggle"><i class="fa fa-plus">
+				</i>&nbsp;添加 <span class="caret"></span>
+			</button>
+			<ul class="dropdown-menu">
+				<li>
+					<a id="btn_add1">添加同级项目</a>
+				</li>
+				<li>
+					<a id="btn_add2">添加子级项目</a>
+				</li>
+			</ul>
+		</div>
+
+		<a id="btn_modify" class="btn btn-primary"><i class="fa fa-edit"></i>&nbsp;修改</a>
+		<button id="btn_del" type="button" class="btn btn-primary"><i class="fa fa-remove"></i>&nbsp;删除</button>
+		<div class="ibox-content" style="height: 500px;overflow: auto;">
+			<div id="ztree" class="ztree"></div>
+		</div>
+	</div>
+</div>
+
+<!--弹出编辑窗口-->
+<div id="edit-form" class="container" hidden="hidden" style="width: 600px;">
+	<div class="panel panel-primary">
+		<div class="panel-body">
+			<form id="form-post">
+				<input id="kbill_id" name="kbill_id" class="form-control" type="hidden">
+				<input id="parent_id" name="parent_id" class="form-control" type="hidden">
+				<input id="kid" name="kid" class="form-control" type="hidden">
+				<div class="form-group">
+					<label>上级知识点：</label>
+					<input id="parent_name" class="form-control" readonly="readonly">
+				</div>
+				<div class="form-group">
+					<label>知识点：</label>
+					<input id="value" name="value" class="form-control">
+				</div>
+				<div class="text-right ">
+					<button class="btn btn-sm btn-w-m btn-default" type="button" onclick="layer.close(edit_index);">取消</button>
+					<button id="bntSubmit" type="button" class="btn btn-sm btn-w-m btn-primary">确定</button>
+				</div>
+			</form>
+		</div>
+
+	</div>
+</div>
+
+<% include footer.html %>
+<script type="text/javascript" src="js/plugins/ztree/jquery.ztree.core.min.js"></script>
+<script type="text/javascript" src="js/plugins/ztree/jquery.ztree.excheck.min.js"></script>
+<script type="text/javascript" src="js/plugins/ztree/jquery.ztree.exedit.min.js"></script>
+
+<script>
+	var parent_id, parent_name;
+	var kid, value;
+	var is_new;
+	var edit_index;
+	var kbill_id;
+	var index;
+
+	var setting = {
+		edit: {
+			drug: {
+				isCopy: false,
+				isMove: true,
+			},
+			enable: true,
+			showRemoveBtn: false,
+			showRenameBtn: false
+		},
+		data: {
+			simpleData: {
+				enable: true
+			}
+		},
+		callback: {
+			beforeDrop: beforeDrop,
+			onDrop: onDrop,
+			onClick: onClick,
+		}
+	};
+	
+	function onClick(event, treeId, treeNode, clickFlag) {
+		var treeObj = $.fn.zTree.getZTreeObj("ztree");
+		parent_id = treeNode.pId;
+		parent_name = '';
+		if(parent_id){
+			var pnode = treeObj.getNodeByParam("id", parent_id, null);
+			parent_name = pnode.name;
+		}
+
+		kid = treeNode.id;
+		value = treeNode.name;		
+	}		
+		
+	function onDrop(event, treeId, treeNodes, targetNode, moveType, isCopy) {
+		var treeObj = $.fn.zTree.getZTreeObj("ztree");
+		var nodes = treeObj.getNodesByParam("pId", treeNodes[0].pId, null);
+		var level = treeNodes[0].level;
+		var data = []
+		var index = 0;
+
+		for(var item of nodes) {
+			if(item.level != level) continue;
+			index++;
+			data.push({
+				kid: item.id,
+				sort_no: index
+			})
+		};
+
+		_ajax_post(
+			"POST",
+			server_url + "/baseinfo/updateknowledgesortno", {
+				data: JSON.stringify(data)
+			},
+			function() {
+				_toastr_ok("保存成功!")
+			});
+	}
+
+	//拖拽释放之后执行  
+	function beforeDrop(treeId, treeNodes, targetNode, moveType) {
+		if(moveType != "next" && moveType != "prev") {
+			alert('只能进行同级排序！');
+			return false;
+		}
+
+		if(moveType == "inner") {
+			alert('只能进行同级排序！');
+			return false;
+		}
+
+		if(treeNodes.length != 1) {
+			alert('请只选择一个节点!');
+			return false;
+		}
+
+		if(targetNode.pId != treeNodes[0].pId) {
+			alert('只能进行同级排序！');
+			return false;
+		}
+	}
+	
+	function ShowEdit() {
+		edit_index = layer.open({
+			type: 1,
+			title: "知识点编辑",
+			shadeClose: true,
+			maxmin: true,
+			area: ['600px', '270px'],
+			content: $('#edit-form'),
+		});
+	}
+
+	function RenameTreeNode(data) {
+		var treeObj = $.fn.zTree.getZTreeObj("ztree");
+
+		if(is_new) {
+			var new_item = {
+				id: data.kid,
+				name: $('#value').val()
+			};
+
+			var treenode = null;
+			var pid = $('#parent_id').val();
+
+			if(pid){
+				treenode = treeObj.getNodeByParam("id", pid, null);
+			}
+
+			treeObj.addNodes(treenode, new_item);
+		} else {
+			var treenode = treeObj.getNodeByParam("id", kid, null);
+			treenode.name = $('#value').val();
+			treeObj.updateNode(treenode);
+		}
+	}
+
+	function add1() {
+		$('#kid').val('');
+		$('#value').val('');
+		$('#parent_id').val(parent_id);
+		$('#parent_name').val(parent_name);
+		is_new = true;
+		ShowEdit();
+	}
+
+	function add2() {
+		$('#parent_id').val(kid);
+		$('#parent_name').val(value);
+		$('#kid').val('');
+		$('#value').val('');
+		is_new = true;
+		ShowEdit();
+	}
+
+	function tree_del() {
+		var layer_index;
+		layer_index = layer.confirm("您确定要删除【" + value + "】吗?", {
+			btn: ['确定', '取消']
+		}, function() {
+			_ajax_post(
+				"POST",
+				server_url + "/baseinfo/delknowledge", {
+					kid: kid
+				},
+				function() {
+					var treeObj = $.fn.zTree.getZTreeObj("ztree");
+					var treenode = treeObj.getNodeByParam("id", kid, null);
+					treeObj.removeNode(treenode);
+					_toastr_ok("删除成功!")
+				});
+			layer.close(layer_index);
+		}, function() {
+			layer.close(layer_index);
+		});
+	}
+
+	function modify() {
+		$('#kid').val(kid);
+		$('#value').val(value);
+		$('#parent_id').val(parent_id);
+		$('#parent_name').val(parent_name);
+		is_new = false;
+		ShowEdit();
+	}
+
+	//刷新树
+	function reloadTree() {
+		parent_id = null;
+		parent_name = null;
+		prop_id = null;
+		prop_name = null;
+
+		_ajax_post(
+			"GET",
+			server_url + "/baseinfo/getknowledgeztree", {
+				kbill_id:kbill_id
+			},
+			function(data) {
+				$("#ztree").empty();
+				$.fn.zTree.init($("#ztree"), setting, data);
+			});
+	}
+	
+	$(document).ready(function() {
+		index = parent.layer.getFrameIndex(window.name);
+		kbill_id = parent.kbill_id;
+		
+		$("#kbill_id").val(kbill_id);
+		
+		//绑定添加按钮事件(同级项目)
+		$("#btn_add1").click(function() {
+			add1();
+		});
+
+		//绑定添加按钮事件(子级项目)
+		$("#btn_add2").click(function() {
+			add2();
+		});
+
+		//修改按钮点击
+		$("#btn_modify").click(function() {
+			modify();
+		});
+
+		//删除按钮点击
+		$("#btn_del").click(function() {
+			tree_del();
+		});
+
+		//新增,修改按钮提交
+		$("#bntSubmit").click(function() {
+			_ajax_post("POST", server_url + "/baseinfo/updateknowledge",
+				$('#form-post').serialize(),
+				function(data) {
+					layer.close(edit_index);
+					RenameTreeNode(data);
+				});
+		});
+
+		reloadTree();
+	});
+</script>

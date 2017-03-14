@@ -1,0 +1,279 @@
+<% include header.html %>
+<div class="container">
+    <div class="panel panel-primary">
+        <div class="panel-body">
+            <form class="form-horizontal">
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <label class="col-sm-2 text-right">标题</label>
+                            <div class="col-sm-10">
+                                <input id="title" class="form-control" type="text"/>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="col-sm-2 text-right">题目排序方式</label>
+                            <div class="col-sm-10">
+                                <select id="sort_type" class="form-control">
+                                    <option value="0">固定顺序</option>
+                                    <option value="1">随机排序</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="mngquest" class="form-group" hidden="hidden">
+                            <label class="col-sm-2 text-right"></label>
+                            <div class="col-sm-10">
+                                <button id="btnmngquest" type="button" class="btn btn-sm btn-w-m btn-primary">题目管理
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="col-sm-2 text-right">材料内容</label>
+                            <div class="col-sm-10">
+                                <script id="ue_archive" type="text/plain"></script>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-12">
+                    <div class="text-center">
+                        <button class="btn btn-sm btn-w-m btn-default" onclick="parent.layer.close(index);">取消</button>
+                        <button id="bntSubmit" type="button" class="btn btn-sm btn-w-m btn-primary">确定</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="quest_form" class="container" hidden="hidden" style="width: 800px;">
+    <div class="panel panel-primary">
+        <div class="panel-body">
+            <form role="form" class="form-post form-horizontal">
+                <table id="bstable_quest"></table>
+            </form>
+        </div>
+    </div>
+</div>
+
+<% include footer.html %>
+<script type="text/javascript" src="js/plugins/ueditor/lang/zh-cn/zh-cn.js"></script>
+<script type="text/javascript" src="js/plugins/ueditor/ueditor.config.js"></script>
+<script type="text/javascript" src="js/plugins/ueditor/ueditor.all.js"></script>
+<script type="text/javascript" src="js/plugins/ueditor/kityformula-plugin/addKityFormulaDialog.js"></script>
+<script type="text/javascript" src="js/plugins/ueditor/kityformula-plugin/getKfContent.js"></script>
+<script type="text/javascript" src="js/plugins/ueditor/kityformula-plugin/defaultFilterFix.js"></script>
+
+<script>
+    var archive_id;
+    var ue_archive;
+    var index;
+    var quest_info;
+    var quest_index;
+
+    //表格操作按钮点击事件处理
+    window.questoperateEvents = {
+        'click .edit': function (e, value, row, index) {
+            quest_info = row;
+            layer.open({
+                type: 2,
+                title: '题目预览',
+                shadeClose: false,
+                maxmin: false,
+                area: ['900px', '90%'],
+                content: '/admin/quest_show'
+            });
+        },
+        'click .insertquest': function (e, value, row, index) {
+            var quest_no = index + 1;
+            ue_archive.execCommand('inserthtml', '<a questid="' + row.quest_id + '" href="' + row.quest_id + '">(   ' + quest_no + '   )</a>');
+            layer.close(quest_index);
+        },
+        'click .order': function (e, value, row, index) {
+            layer_index = layer.prompt({
+                title: '请输入序号',
+                formType: 0 //prompt风格，支持0-2
+            }, function (pass) {
+                var order_no = 0;
+                if (isNaN(pass)) {
+                    alert('请输入数字!');
+                    return;
+                }
+
+                var data = $("#bstable_quest").bootstrapTable('getData');
+
+                if (pass < 1 || pass > data.length) {
+                    alert('序号输入范围在 1 到 ' + data.length + '！');
+                    return;
+                }
+
+                var sort_no = 0;
+                var quests = [];
+                quests.push({
+                    quest_id: row.quest_id,
+                    sort_no: pass
+                });
+
+                for (var i of data) {
+                    if (i.quest_id == row.quest_id) continue;
+                    sort_no++;
+                    if (sort_no == pass) {
+                        sort_no++;
+                    }
+                    quests.push({
+                        quest_id: i.quest_id,
+                        sort_no: sort_no
+                    })
+                }
+
+                _ajax_post("POST", server_url + "/quest/updatearchivequestsortno", {
+                            archive_id: archive_id,
+                            quests: JSON.stringify(quests)
+                        },
+                        function (data) {
+                            retrieve();
+                        }
+                );
+
+                layer.close(layer_index);
+            });
+        }
+    };
+
+    function retrieve() {
+        _ajax_post("GET", server_url + "/quest/getarchivequest", {
+                    archive_id: archive_id
+                },
+                function (data) {
+                    $("#bstable_quest").bootstrapTable('load', data);
+
+                    if (data.length > 0) {
+                        $('#mngquest').show();
+                    }
+                });
+    }
+
+    //初始化表格
+    function initTable() {
+        $('#bstable_quest').bootstrapTable({
+            pagination: false,
+            toolbar: "#toolbar_quest",
+            toolbarAlign: "right",
+            columns: [{
+                field: 'row_index',
+                title: '序号',
+                align: 'center',
+                width: 50,
+                formatter: function (value, row, index) {
+                    return index + 1;
+                }
+            }, {
+                field: 'type_name',
+                title: '题型',
+                align: 'left',
+                halign: 'center',
+                width: 60
+            }, {
+                field: 'statement',
+                title: '题干',
+                align: 'left',
+                halign: 'center',
+                formatter: function (value, row, index) {
+                    return '<a class="edit">' + value + '</a>';
+                },
+                events: questoperateEvents
+            }, {
+                field: 'del',
+                title: '操作',
+                align: 'center',
+                width: 160,
+                formatter: function (value, row, index) {
+                    return '<a class="insertquest">插入题目</a>&nbsp<a class="order">设置序号</a>';
+                },
+                events: questoperateEvents
+            }]
+        }).on('click-row.bs.table', function (e, row, $element) {
+            $('.success').removeClass('success');
+            $($element).addClass('success');
+        });
+
+        retrieve();
+    }
+
+    $(document).ready(function () {
+        index = parent.layer.getFrameIndex(window.name);
+
+        $("#btnmngquest").click(function () {
+            quest_index = layer.open({
+                type: 1,
+                title: "材料题目管理",
+                shadeClose: true,
+                maxmin: true,
+                area: ['800px', '500px'],
+                content: $('#quest_form')
+            });
+        });
+        //点击确定按钮，保存数据
+        $("#bntSubmit").click(function () {
+            var content = ue_archive.getContent();
+            var title = $("#title").val();
+
+            if (content.length < 1) {
+                _toastr('请录入材料内容!', "bottom-right", "error", false);
+                return;
+            }
+
+            if (title.length < 1) {
+                _toastr('请录入材料标题!', "bottom-right", "error", false);
+                return;
+            }
+
+            var sort_type = $("#sort_type").val();
+            //保存材料
+            var parm = {
+                archive_id: archive_id,
+                title: title,
+                organ_id: sessionStorage.organ_id,
+                content: content,
+                sort_type: sort_type,
+                opr_id: sessionStorage.userid
+            };
+
+            var post_url = server_url + "/quest/updatearchive";
+
+            _ajax_post("POST", post_url, parm, function () {
+                parent.retrieve();
+                parent.layer.close(index);
+            });
+        });
+
+        ue_archive = UE.getEditor('ue_archive', {
+            initialFrameHeight: 360
+        });
+
+        //如果是修改，需读取数据
+        archive_id = parent.archive_id;
+
+        ue_archive.ready(function () {
+            if (archive_id != null) {
+                if(parent.current_row){
+                    ue_archive.setContent(parent.current_row.content);
+                    $("#title").val(parent.current_row.title);
+                    $("#sort_type").val(parent.current_row.sort_type);
+                }else{
+                    _ajax_post("GET",server_url + "/quest/getarchive",{archive_id:archive_id},
+                    function (data) {
+                        ue_archive.setContent(data.rows[0].content);
+                        $("#title").val(data.rows[0].title);
+                        $("#sort_type").val(data.rows[0].sort_type);
+                    })
+                }
+
+                initTable();
+            }
+        });
+    });
+</script>

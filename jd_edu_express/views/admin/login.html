@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>
+			<%= title %>
+		</title>
+		<link href="css/plugins/toastr/toastr.min.css" rel="stylesheet">
+		<link rel="stylesheet" type="text/css" href="css/login_style.css" />
+	</head>
+
+	<body class="gray-bg">
+
+		<div class="container">
+			<form class="form-signin" action="#">
+				<div class="form-signin-heading text-center">
+					<h1 class="sign-title">云学时代教育平台</h1>
+					<!--<img src="img/success.png" alt="" />-->
+				</div>
+				<div class="login-wrap">
+					<input type="text" name="username" class="form-control" placeholder="请输入用户名" autofocus onkeypress="if(event.keyCode==13) {$('#it_password').focus();return false;}">
+					<input id="it_password" type="password" name="password" class="form-control" placeholder="请输入密码" onkeypress="if(event.keyCode==13) {login();return false;}">
+
+					<button id="btnlogin" type="button" onclick="login()" class="btn btn-lg btn-login btn-block">
+             	<i class="fa fa-check"></i>
+           	</button>
+				</div>
+			</form>
+		</div>
+
+		<script type="text/javascript" src="js/jquery.min.js"></script>
+		<script type="text/javascript" src="js/assets/scripts.js"></script>
+	</body>
+</html>
+
+<script>
+	//用户登录
+	function login() {
+		var that = $("#btnlogin");
+		var form = $('.form-signin');
+		var query = form.serialize();
+		query = decodeURIComponent(query, true);
+		var target = server_url + "/public/login";
+		$(that).addClass('disabled').prop('disabled', true);
+
+		$.ajax({
+			type: "POST",
+			url: target,
+			data: query,
+			error: function(XMLHttpRequest, textStatus, errorThrown) {
+				setTimeout(function() {
+					$(that).removeClass('disabled').prop('disabled', false);
+				}, 100);			
+				_toastr_err("error message : " + errorThrown.toString());
+			},
+			success: function(ret) {
+				if(ret.errno == 0) {
+					console.log(ret.data);
+					sessionStorage.token = ret.data.token;
+					sessionStorage.username = ret.data.username;
+					sessionStorage.userid = ret.data.userid;
+					sessionStorage.organ_id = ret.data.organ_id;
+					location.href = "/admin";
+				} else {
+					_toastr_err(ret.errmsg);
+				}
+
+				setTimeout(function() {
+					$(that).removeClass('disabled').prop('disabled', false);
+				}, 100);
+			}
+		});
+	}
+</script>

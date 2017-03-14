@@ -1,0 +1,1024 @@
+<% include header.html %>
+<link rel="stylesheet" href="css/plugins/element-ui/lib/theme-default/index.css"/>
+<style>
+    .el-table {
+        font-size: 12px;
+    }
+
+    .el-table td, .el-table th {
+        height: 30px;
+    }
+</style>
+<div class="wrapper wrapper-content" hidden="hidden">
+    <div class="row" style="background-color: white;">
+        <div class="ibox float-e-margins">
+            <table id="bstable" class="table-fixed"></table>
+        </div>
+    </div>
+</div>
+
+<!--表格工具栏-->
+<div id="toolbar">
+    <form id="search_form" class="form-inline">
+        <button class="btn btn-primary" type="button" onclick="retrieve();"><i class="fa fa-refresh"></i>&nbsp;刷新
+        </button>
+        <button id="btn_add" type="button" class="btn btn-primary"><i class="fa fa-plus"></i>&nbsp;添加规则</button>
+    </form>
+</div>
+
+<div id="app">
+    <div id="rule_edit" class="container" hidden="hidden">
+        <div class="panel panel-primary">
+            <div class="panel-body">
+                <form class="form-horizontal">
+                    <div v-show="step==1" class="step1">
+                        <div id="ptype" class="col-md-11"></div>
+                        <div class="col-md-11">
+                            <div class="form-group">
+                                <label class="col-md-2 control-label text-right">名称</label>
+                                <div class="col-md-10">
+                                    <input v-model="rule.rule_name" class="form-control" type="text">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="col-md-2 control-label text-right"></label>
+                                <div class="col-md-10">
+                                    <button class="btn btn-sm btn-w-m btn-warning" type="button" @click="checkRuleName">
+                                        规则检查
+                                    </button>
+                                    <span>{{checkmsg}}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-show="step==2" class="step1">
+                        <div class="form-group">
+                            <div class="col-md-11">
+                                <div class="form-group">
+                                    <label class="col-md-2 control-label text-right">规则名称</label>
+                                    <div class="col-md-10">
+                                        <input v-model="rule.rule_name" class="form-control" type="text"/>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="col-sm-2 text-right">题量</label>
+                                    <div class="col-sm-2">
+                                        <input class="form-control" v-model="rule.quest_num" type="number" min="0"/>
+                                    </div>
+                                    <label class="col-sm-1 text-right">分值</label>
+                                    <div class="col-sm-2">
+                                        <input class="form-control" v-model="rule.score" type="number" min="0"/>
+                                    </div>
+                                    <label class="col-sm-2 text-right">作答时间</label>
+                                    <div class="col-sm-2">
+                                        <input class="form-control" v-model="rule.duration" type="number" min="0"/>
+                                    </div>
+                                </div>
+                                <div class="form-inline">
+                                    <label class="col-md-2 control-label text-right"></label>
+                                    <button class="btn btn-sm btn-w-m btn-primary" @click="openkbillquery"
+                                            type="button">
+                                        添加知识点目录
+                                    </button>
+                                    <button class="btn btn-sm btn-w-m btn-primary" @click="openkpaperquery"
+                                            type="button">引入其他试卷知识点
+                                    </button>
+                                    <button class="btn btn-sm btn-primary" type="button" @click="delKnowledge">全部删除
+                                    </button>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-2 text-right">
+                                        <label class="control-label">知识点范围</label>
+                                    </div>
+                                    <div class="col-md-10">
+                                        <!--加入知识点列表组件，并将当前组卷规则的知识点目录赋值给组件-->
+                                        <k-grid :showselect="bfalse" :showoperator="btrue" :showquestnum="bfalse"
+                                                :data="ruleKnowledge"></k-grid>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-show="step==3">
+                        <div class="container">
+                            <h3>试卷模块</h3>
+                            <button type="button" class="btn btn-sm btn-w-m btn-warning" @click="addRuleGroup">
+                                添加模块
+                            </button>
+                            <p></p>
+                            <div v-for="(item, index) in rule_group" class="panel panel-primary" style="width: 90%">
+                                <div class="panel-body">
+                                    <div class="text-right">
+                                        <button class="btn btn-sm btn-white" type="button" @click="delRuleGroup(index)">
+                                            删除
+                                        </button>
+                                    </div>
+                                    <div class="form-group">
+                                        <div class="col-md-11">
+                                            <div class="form-group">
+                                                <label class="col-sm-2 text-right">题型</label>
+                                                <div class="col-sm-2">
+                                                    <select class="form-control" v-model="item.type_id">
+                                                        <option value="1">选择题</option>
+                                                        <option value="2">判断题</option>
+                                                        <option value="3">主观题</option>
+                                                        <option value="4">填空题</option>
+                                                    </select>
+                                                </div>
+                                                <label class="col-sm-1 text-right">作答要求</label>
+                                                <div class="col-sm-7">
+                                                    <div class="input-group">
+                                                        <input class="form-control" v-model="item.require_id"
+                                                               type="hidden">
+                                                        <input class="form-control" @click="selRequire(index)"
+                                                               v-model="item.require_name" style="background: white"
+                                                               readonly="readonly">
+                                                        <div class="input-group-btn">
+                                                            <button type="button" class="btn btn-white"
+                                                                    @click="clearRequire(index)">
+                                                                <i class="fa fa-remove"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <div class="col-md-11">
+                                            <div class="form-group">
+                                                <label class="col-sm-2 text-right">题量</label>
+                                                <div class="col-sm-2">
+                                                    <input class="form-control" v-model="item.quest_num" type="number"
+                                                           min="0"/>
+                                                </div>
+                                                <label class="col-sm-1 text-right">分值</label>
+                                                <div class="col-sm-2">
+                                                    <input class="form-control" v-model="item.score" type="number"
+                                                           min="0"/>
+                                                </div>
+                                                <label class="col-sm-2 text-right">作答时间</label>
+                                                <div class="col-sm-2">
+                                                    <input class="form-control" v-model="item.duration" type="number"
+                                                           min="0"/>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="col-md-2 control-label text-right"></label>
+                                            <div class="col-md-10">
+                                                <button class="btn btn-sm btn-w-m btn-primary" type="button"
+                                                        @click="setRuleGroup(index)">
+                                                    知识点设置
+                                                </button>
+                                                已选知识点数量{{item.knowledge?item.knowledge.length:0}}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <button class="btn btn-sm btn-w-m btn-default" type="button"
+                                onclick="layer.close(layer_index);">
+                            取消
+                        </button>
+                        <button v-show="step==2||step==3" type="button" class="btn btn-sm btn-w-m btn-primary"
+                                @click="step--">上一步
+                        </button>
+                        <button v-show="step==1||step==2" type="button" class="btn btn-sm btn-w-m btn-primary"
+                                @click="nextStep">下一步
+                        </button>
+                        <button v-show="step==3" @click="submit" type="button"
+                                class="btn btn-sm btn-w-m btn-primary">
+                            完成
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!--知识点目录弹窗组件-->
+    <div id="kbillquery" class="container" hidden="hidden">
+        <kbillquery :data="query_kbill" :layer_index="kbill_layer_index"></kbillquery>
+    </div>
+
+    <!--知识点试卷弹窗组件-->
+    <div id="kpaperquery" class="container" hidden="hidden">
+        <kpaperquery :data="query_paper" :layer_index="kpaper_layer_index"></kpaperquery>
+    </div>
+
+    <!--模块知识点弹出设置窗口-->
+    <div id="step3knowledge" class="container" hidden="hidden">
+        <div>
+            <p></p>
+            <button onclick="layer.close(layer_index2);" class="btn btn-sm btn-w-m btn-default" type="button">取消
+            </button>
+            <button type="button" class="btn btn-sm btn-w-m btn-primary" @click="importKnowledge">引入考纲知识点</button>
+            <button type="button" class="btn btn-sm btn-w-m btn-primary" @click="clearGroupKnowledge">全部删除</button>
+            <button type="button" class="btn btn-sm btn-w-m btn-primary" @click="comfirmGroupKnowledge">确定</button>
+        </div>
+        <k-grid :showselect="bfalse" :showoperator="btrue" :showquestnum="btrue"
+                :data="rule_group_knowledge_tmp"></k-grid>
+    </div>
+
+    <!--引入考纲弹出选择窗口-->
+    <div id="ruleGroupKnowdge" class="container" hidden="hidden">
+        <div>
+            <p></p>
+            <button onclick="layer.close(layer_index3);" class="btn btn-sm btn-w-m btn-default" type="button">取消
+            </button>
+            <button @click="importRuleTOGroup" type="button" class="btn btn-sm btn-w-m btn-primary">确定</button>
+        </div>
+        <k-grid ref="importkgrid" :showselect="btrue" :showoperator="bfalse" :showquestnum="bfalse"
+                :data="ruleKnowledge"></k-grid>
+    </div>
+</div>
+<% include footer.html %>
+<script type="text/javascript" src="js/vue.min.js"></script>
+<script src="css/plugins/element-ui/lib/index.js"></script>
+
+<% include components/knowledge_grid.html %>
+<% include components/knowledge_bill_query.html %>
+<% include components/knowledge_paper_query.html %>
+
+<script>
+    var rule_id = null;
+    var current_row = null;
+    var offset = 0;
+    var target_id = 5;
+    var prop_html = '';
+    var layer_index;
+    var layer_index2;
+    var layer_index3;
+    var app; //VUE变量
+    var multipleSelection = [];
+    var curQueryTarget_id;               //当前属性查询对象id
+    var curRuleGroupIndex;               //当前操作分组id
+    var ptype_id;
+
+    //处理属性检索弹出窗口返回值
+    function getquery(probs) {
+        //查询知识点目录
+        if (curQueryTarget_id == 4) {
+            _ajax_post(
+                    "GET",
+                    server_url + "/baseinfo/queryknowledgebill", {
+                        organ_id: sessionStorage.organ_id,
+                        props: JSON.stringify(probs)
+                    },
+                    function (data) {
+                        app.setquery_kbill(data.rows);
+                    });
+        }
+
+        //检索试卷目录
+        if (curQueryTarget_id == 2) {
+            _ajax_post(
+                    "GET",
+                    server_url + "/quest/getpaperlist", {
+                        organ_id: sessionStorage.organ_id,
+                        props: JSON.stringify(probs),
+                        is_audit: 2
+                    },
+                    function (data) {
+                        app.setquery_paper(data.rows);
+                    });
+        }
+    }
+
+    //初始化表格
+    function initTable() {
+        $('#bstable').bootstrapTable({
+            ajax: ajaxRequest,
+            toolbar: "#toolbar",
+            pagination: true,
+            pageNumber: 1,
+            pageSize: 10,
+            pageList: [10, 20, 40],
+            sidePagination: 'server',
+            columns: [{
+                field: 'row_index',
+                title: '序号',
+                align: 'center',
+                width: 50,
+                formatter: function (value, row, index) {
+                    return offset + index + 1;
+                }
+            }, {
+                field: 'rule_name',
+                title: '规则名称',
+                align: 'left',
+                halign: 'center'
+            }, {
+                field: 'quest_num',
+                title: '题量',
+                align: 'center',
+                width: 100
+            }, {
+                field: 'score',
+                title: '分值',
+                align: 'center',
+                width: 100
+            }, {
+                field: 'duration',
+                title: '时间',
+                align: 'center',
+                halign: 'center',
+                width: 100,
+                formatter: function (value, row, index) {
+                    return value + '(分钟)'
+                }
+            }, {
+                field: 'opr',
+                title: '操作',
+                align: 'center',
+                width: 100,
+                formatter: function (value, row, index) {
+                    return '<a class="edit">修改</a>&nbsp;<a class="delete">删除</a>';
+                },
+                events: operateEvents
+            }]
+        }).on('click-row.bs.table', function (e, row, $element) {
+            $('.success').removeClass('success');
+            $($element).addClass('success');
+            rule_id = row.rule_id;
+        });
+    }
+
+    //表格操作按钮点击事件处理
+    window.operateEvents = {
+        'click .edit': function (e, value, row, index) {
+            rule_id = row.rule_id;
+            current_row = row;
+            app.initRuleData(rule_id);
+//            Edit();
+        },
+        'click .delete': function (e, value, row, index) {
+            var layer_index;
+            layer_index = layer.confirm('您确定要删除当前数据吗？', {
+                btn: ['确定', '取消']
+            }, function () {
+                _ajax_post("POST", server_url + "/rule/delrule", {
+                            rule_id: row.rule_id
+                        },
+                        retrieve);
+                layer.close(layer_index);
+            }, function () {
+                layer.close(layer_index);
+            });
+        }
+    };
+
+    //点击属性选择器
+    function AddProp(item) {
+        //获取点击的属性ID
+        ptype_id = $(item).attr("ptype_id");
+        if (!ptype_id) return;
+
+        //获取之前选择的属性
+        choosedprop = [];
+
+        //重新生成目录属性值
+        $(".prop-chosen-choices").each(function (index) {
+            var values = [];
+            var ptype_id = $(this).attr("ptype_id");
+            $(".prop-search-choice[ptype_id='" + ptype_id + "']").each(function (index) {
+                values.push($(this).attr("data-value"));
+            });
+            $("input[id='ptype_id_" + ptype_id + "']").val(values.join(','));
+        });
+
+        var is_beforeptype = true;
+        $("#ptype input").each(function (index) {
+            var pre_ptype_id = $(this).attr("name");
+            if (ptype_id == pre_ptype_id) {
+                is_beforeptype = false;
+                return;
+            }
+            if (!is_beforeptype) return;
+
+            var prop_value = $(this).val();
+            var data_type = $(this).attr("data_type");
+
+            if (data_type != 0) return;
+            if (prop_value.length < 1) return;
+
+            var prop_ids = prop_value.split(",");
+            for (var i of prop_ids) {
+                if (i != '') {
+                    var prop_id = 0;
+                    if (data_type == 0) prop_id = i;
+
+                    choosedprop.push({
+                        ptype_id: pre_ptype_id,
+                        prop_id: prop_id
+                    });
+                }
+            }
+        });
+
+        layer.open({
+            type: 2,
+            title: "选择属性",
+            area: ['450px', '550px'],
+            content: '/admin/property_selector'
+        });
+    }
+
+    function matchRetrieve() {
+        //重新生成目录属性值
+        $(".prop-chosen-choices").each(function (index) {
+            var values = [];
+            var ptype_id = $(this).attr("ptype_id");
+            $(".prop-search-choice[ptype_id='" + ptype_id + "']").each(function (index) {
+                values.push($(this).attr("data-value"));
+            });
+            $("input[id='ptype_id_" + ptype_id + "']").val(values.join(','));
+        });
+
+        //获取选择的属性值，并判断是否必选
+        var paper_prop = [];
+        var check_ok = true;
+        $("#ptype input").each(function (index) {
+            var ptype_id = $(this).attr("name");
+            var prop_value = $(this).val();
+            var data_type = $(this).attr("data_type");
+
+            if (prop_value.length < 1) {
+                return;
+            }
+
+            prop_ids = prop_value.split(",");
+            for (var i in prop_ids) {
+                if (prop_ids[i] != '') {
+                    var prop_id = 0;
+                    var text_value = '';
+                    var num_value = 0;
+
+                    if (data_type == 0) prop_id = prop_ids[i];
+                    if (data_type == 1) num_value = prop_ids[i];
+                    if (data_type == 2) text_value = prop_ids[i];
+
+                    paper_prop.push({
+                        ptype_id: ptype_id,
+                        prop_id: prop_id,
+                        num_value: num_value,
+                        text_value: text_value,
+                        data_type: data_type
+                    });
+                }
+            }
+        });
+
+        getquery(paper_prop);
+    }
+
+    function setprop(parm_prpo_id, parm_prpo_name) {
+        if (ptype_id == 85) {
+            app.setGroupRequire(parm_prpo_id, parm_prpo_name);
+            return;
+        }
+
+        //检查是否存在重复的值，如果有则不再添加
+        var lb_repeat = false;
+        var prop_search = $(".step1 .prop-search-choice[ptype_id='" + ptype_id + "']");
+        prop_search.each(function (index) {
+            var data_value = $(this).attr("data-value");
+            data_value = data_value.replace('"', '');
+            if (parm_prpo_id == data_value) {
+                lb_repeat = true;
+                return false;
+            }
+        });
+        if (lb_repeat) return;
+
+        //添加选择项目
+        var temp = '<li class="prop-search-choice" ptype_id="' + ptype_id + '" data-value=' + parm_prpo_id + '><span>' + parm_prpo_name + '</span><a class="prop-search-choice-close" data-value=' + parm_prpo_id + '></a></li>';
+        if (ptype_id == 85) {
+            temp = '<li class="prop-search-choice" ptype_id="' + ptype_id + '" data-value=' + parm_prpo_id + '><span>' + parm_prpo_name + '</span></li>';
+        }
+        $("[add_ptype_id='" + ptype_id + "']").before(temp);
+
+        var values = [];
+        prop_search.each(function (index) {
+            values.push($(this).attr("data-value"));
+        });
+
+        values.push(parm_prpo_id);
+
+        //选择后将值重新赋值在隐藏的input上
+        $("input[id='ptype_id_" + ptype_id + "']").val(values.join(','));
+
+        //构造题目名称
+        var rule_name = '';
+        $(".prop-search-choice span").each(function (index) {
+            if (rule_name.length > 0) rule_name += "-";
+
+            var path_name = $(this).html();
+
+            //至提取最后一端
+            var tmps = path_name.split('&gt;');
+            path_name = tmps[tmps.length - 1];
+
+            rule_name += path_name;
+        });
+
+        app.setRuleName(rule_name);
+    }
+
+    //自定义AJAX方法
+    function ajaxRequest(params) {
+        offset = params.data.offset;
+        rule_id = null;
+        $.ajax({
+            type: "GET",
+            url: server_url + "/rule/getrulelist",
+            headers: {
+                token: sessionStorage.getItem('token')
+            },
+            data: params.data,
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+            },
+            success: function (ret) {
+                if (ret.errno == 0) {
+                    params.success(ret.data);
+                } else {
+                    if (ret.errno == 1001) {
+                        $.each(ret.errmsg, function (i, n) {
+                            _toastr(n, "bottom-right", "error", false);
+                        })
+                    } else {
+                        _toastr(ret.errmsg, "bottom-right", "error", false);
+                    }
+                }
+            }
+        });
+    }
+
+    function retrieve() {
+        rule_id = null;
+        $('#bstable').bootstrapTable('refresh');
+    }
+
+    //打开编辑界面
+    function Edit() {
+        if (rule_id) {
+
+        }
+
+        layer_index = layer.open({
+            type: 1,
+            title: "编辑组卷规则",
+            shadeClose: true,
+            maxmin: true,
+            area: ['100%', '100%'],
+            content: $('#rule_edit')
+        });
+    }
+
+    //处理知识点选择项目
+    function handleKSelectionChange(val) {
+        multipleSelection = val;
+    }
+
+    //通过获取的知识点目录id添加知识点目录
+    function handleSelectedKBill(KBill_id) {
+        _ajax_post("GET",
+                server_url + "/baseinfo/getknowledgeinfo", {
+                    kbill_id: KBill_id
+                },
+                function (data) {
+                    //删除当前考纲中已有的知识点
+                    for (var i = 0, flag = true, len = data.rows.length; i < len; flag ? i++ : i) {
+                        for (var j = 0; j < app.ruleKnowledge.length; j++) {
+                            if (data.rows[i] && data.rows[i].kid == app.ruleKnowledge[j].kid) {
+                                if(!app.ruleKnowledge[j].count) app.ruleKnowledge[j].count = 0;
+                                app.ruleKnowledge[j].count++;
+                                data.rows.splice(i, 1);
+                                flag = false;
+                            } else {
+                                flag = true;
+                            }
+                        }
+                    }
+
+                    app.ruleKnowledge = app.ruleKnowledge.concat(data.rows);
+                })
+    }
+
+    function savaData(data) {
+        console.log(data);
+        _ajax_post("POST", server_url + "/rule/updaterule", data, function (data) {
+            retrieve();
+            layer.close(layer_index);
+        });
+    }
+    //通过获取的试卷id添加知识点目录
+    function handleSelectedPaper(paper_id) {
+        _ajax_post("GET",
+                server_url + "/baseinfo/getknowledgeinfo", {
+                    paper_id: paper_id
+                },
+                function (data) {
+                    //去除重复知识点并添加
+                    for (var i = 0, flag = true, len = data.rows.length; i < len; flag ? i++ : i) {
+                        for (var j = 0; j < app.ruleKnowledge.length; j++) {
+                            if (data.rows[i] && data.rows[i].kid == app.ruleKnowledge[j].kid) {
+                                if(!app.ruleKnowledge[j].count) app.ruleKnowledge[j].count = 0;
+                                app.ruleKnowledge[j].count++;
+                                data.rows.splice(i, 1);
+                                flag = false;
+                            } else {
+                                flag = true;
+                            }
+                        }
+                    }
+
+                    app.ruleKnowledge = app.ruleKnowledge.concat(data.rows);
+
+                    //app.ruleKnowledge = concatArray(data.rows, app.ruleKnowledge, 'kid');
+                })
+    }
+
+    $(document).ready(function () {
+        //绑定添加按钮事件
+        $("#btn_add").click(function () {
+            rule_id = null;
+            app.initRuleData(rule_id);
+            Edit();
+        });
+
+        initTable();
+
+        _ajax_post(
+                "GET",
+                server_url + "/property/getsystargetprophtml", {
+                    target_id: 5
+                },
+                function (data) {
+                    prop_html = data[0].prop_html;
+                    $("#ptype").html(prop_html);
+
+                    //处理必选题目标注红色*
+                    $("#ptype input").each(function (index) {
+                        var ptype_id = $(this).attr("name");
+                        var data_type = $(this).attr("data_type");
+
+                        if (($(this).attr("choose_required") == 1) && data_type == 0) {
+                            var lb = $(".label_ptype_id_" + ptype_id);
+                            var lable_html = lb.html();
+                            lb.html(lable_html + "<span style='color: red;'>*</span>");
+                        }
+                    });
+
+                    //注意：需要在动态界面内容加载完成后再初始化Vue变量
+                    app = new Vue({
+                        el: '#app',
+                        data: {
+                            step: 1,
+                            rule: {
+                                rule_id: 0,
+                                rule_name: '',
+                                quest_num: 0,
+                                score: 0,
+                                duration: 0
+                            },
+                            checkmsg: '',
+                            kbill_layer_index: 0,       //知识点目录查询弹窗index
+                            kpaper_layer_index: 0,       //知识点试卷检索弹窗index
+                            ruleKnowledge: [],              //规则知识点数据
+                            query_kbill: [],              //检索出来的知识点目录
+                            query_paper: [],
+                            rule_group: [],
+                            rule_group_knowledge_tmp: [],
+                            rule_prop: [],                       //组卷规则属性
+                            btrue: 1,
+                            bfalse: 0,
+                            require_option: [],               //作答要求选项
+                            curgroupindex: 0                     //当前操作分组索引
+                        },
+                        created: function () {
+//                            _ajax_post(
+//                                    "GET",
+//                                    server_url + "/property/getproperty", {
+//                                        target_id: 5
+//                                    },
+//                                    function (data) {
+//                                    });
+                        },
+                        mounted: function () {
+                            initPropChoose(AddProp);
+                        },
+                        methods: {
+                            setquery_kbill: function (data) {
+                                this.query_kbill = data;
+                            },
+                            setquery_paper: function (data) {
+                                this.query_paper = data;
+                            },
+                            setRuleName: function (rulename) {
+                                this.rule.rule_name = rulename
+                            },
+                            //弹窗试卷检索窗口
+                            openkpaperquery: function () {
+                                curQueryTarget_id = 2;
+                                this.query_paper = [];
+                                this.kpaper_layer_index = layer.open({
+                                    type: 1,
+                                    title: "试卷知识点添加",
+                                    shadeClose: true,
+                                    maxmin: true,
+                                    area: ['90', '85%'],
+                                    content: $('#kpaperquery')
+                                });
+                            },
+                            //弹出知识点目录检索窗口
+                            openkbillquery: function () {
+                                curQueryTarget_id = 4;
+                                this.query_kbill = [];
+                                this.kbill_layer_index = layer.open({
+                                    type: 1,
+                                    title: "选择知识点目录",
+                                    shadeClose: true,
+                                    maxmin: true,
+                                    area: ['90%', '85%'],
+                                    content: $('#kbillquery')
+                                });
+                            },
+                            checkRuleName: function () {
+                                var _self = this;
+                                _self.checkmsg = '';
+                                _ajax_post(
+                                        "GET",
+                                        server_url + "/rule/checkrulename", {
+                                            rule_id: this.rule.rule_id,
+                                            rule_name: this.rule.rule_name
+                                        },
+                                        function (data) {
+                                            _self.checkmsg = data;
+                                        });
+                            },
+                            delKnowledge: function () {
+                                var _self = this;
+                                var layer_index;
+                                layer_index = layer.confirm('您确定要删除所有的知识点吗？', {
+                                    btn: ['确定', '取消']
+                                }, function () {
+                                    _self.ruleKnowledge.splice(0, _self.ruleKnowledge.length);
+                                    layer.close(layer_index);
+                                }, function () {
+                                    layer.close(layer_index);
+                                });
+                            },
+                            addRuleGroup: function () {
+                                this.rule_group.push({
+                                    group_id: 0,
+                                    type_id: 1,
+                                    group_name: '',
+                                    quest_num: 0,
+                                    score: 0,
+                                    duration: 0
+                                })
+                            },
+                            delRuleGroup: function (index) {
+                                var _self = this;
+                                var layer_index;
+                                layer_index = layer.confirm('您确定要删除当前试卷部分吗？', {
+                                    btn: ['确定', '取消']
+                                }, function () {
+                                    _self.rule_group.splice(index, 1);
+                                    layer.close(layer_index);
+                                }, function () {
+                                    layer.close(layer_index);
+                                });
+                            },
+                            setRuleGroup: function (index) {
+                                curRuleGroupIndex = index;
+                                this.rule_group_knowledge_tmp = [];
+                                if (this.rule_group[curRuleGroupIndex].knowledge) {
+                                    this.rule_group_knowledge_tmp = [].concat(this.rule_group[curRuleGroupIndex].knowledge);
+                                }
+
+                                //设置试卷模块知识点
+                                layer_index2 = layer.open({
+                                    type: 1,
+                                    title: "设置试卷模块知识点",
+                                    shadeClose: true,
+                                    maxmin: true,
+                                    area: ['100%', '100%'],
+                                    content: $('#step3knowledge')
+                                });
+                            },
+                            importKnowledge: function () {
+                                this.$refs.importkgrid.clearSelection();           //通过组件索引访问子组件
+
+                                layer_index3 = layer.open({
+                                    type: 1,
+                                    title: "设置试卷模块知识点",
+                                    shadeClose: true,
+                                    maxmin: true,
+                                    area: ['100%', '100%'],
+                                    content: $('#ruleGroupKnowdge')
+                                });
+                            },
+                            //选择考纲中的知识点引入到分组中
+                            importRuleTOGroup: function () {
+                                //删除当前考纲中已有的知识点
+                                this.rule_group_knowledge_tmp = concatArray(multipleSelection, this.rule_group_knowledge_tmp, 'kid');
+                                layer.close(layer_index3);
+                            },
+                            //全部删除分组中的知识点
+                            clearGroupKnowledge: function () {
+                                var _self = this;
+                                var layer_index;
+                                layer_index = layer.confirm('您确定要删除所有的知识点吗？', {
+                                    btn: ['确定', '取消']
+                                }, function () {
+                                    _self.rule_group_knowledge_tmp.splice(0, _self.rule_group_knowledge_tmp.length);
+                                    layer.close(layer_index);
+                                }, function () {
+                                    layer.close(layer_index);
+                                });
+                            },
+                            //确定分组知识点选择
+                            comfirmGroupKnowledge: function () {
+                                this.rule_group[curRuleGroupIndex].knowledge = [].concat(this.rule_group_knowledge_tmp);
+                                this.rule_group_knowledge_tmp = [];
+                                layer.close(layer_index2);
+                            },
+                            nextStep: function () {
+                                var _self = this;
+                                //r如果是在第一步界面,需检查属性必填项目，名称不能空
+                                if (this.step == 1) {
+                                    this.rule_prop = [];
+                                    var checkOK = true;
+                                    $(".step1 input").each(function (index) {
+                                        if (!checkOK) return;
+                                        var ptype_id = $(this).attr("name");
+                                        if (!ptype_id) return;
+                                        var prop_value = $(this).val();
+                                        var data_type = $(this).attr("data_type");
+
+                                        if (($(this).attr("choose_required") == 1) && prop_value.length < 1 && data_type == 0) {
+                                            alert('请录入' + $('.label_ptype_id_' + ptype_id).text() + '!');
+                                            checkOK = false;
+                                        }
+
+                                        if (prop_value.length < 1) {
+                                            return;
+                                        }
+
+                                        var prop_ids = prop_value.split(",");
+                                        for (var i in prop_ids) {
+                                            if (prop_ids[i] != '') {
+                                                var prop_id = 0;
+                                                var text_value = '';
+                                                var num_value = 0;
+
+                                                if (data_type == 0) prop_id = prop_ids[i];
+                                                if (data_type == 1) num_value = prop_ids[i];
+                                                if (data_type == 2) text_value = prop_ids[i];
+
+                                                _self.rule_prop.push({
+                                                    target_id: 5,
+                                                    ptype_id: ptype_id,
+                                                    prop_id: prop_id,
+                                                    num_value: num_value,
+                                                    text_value: text_value
+                                                });
+                                            }
+                                        }
+                                    });
+
+                                    if (!checkOK) return;
+
+                                    if (this.rule.rule_name.length < 1) {
+                                        alert('请输入规则名称!');
+                                        return;
+                                    }
+                                }
+                                this.step++;
+                            },
+                            //提交保存数据
+                            submit: function () {
+                                //检查分组总题量是否超过规则总题量
+                                var group_quest_num = 0;
+                                var group_score = 0;
+                                var group_duration = 0;
+                                for (var group of this.rule_group) {
+                                    group_quest_num += group.quest_num;
+                                    group_score += group.score;
+                                    group_duration += group.duration;
+                                    if (!group.knowledge || group.knowledge.length < 1) {
+                                        alert('存在未添加知识点的模块!');
+                                        return;
+                                    }
+
+                                }
+                                if (group_quest_num > this.rule.quest_num) {
+                                    alert('各个规则模块合计题量不能超过规则题量!');
+                                    return;
+                                }
+
+                                if (group_score > this.rule.score) {
+                                    alert('各个规则模块合计分值不能超过规则分值!');
+                                    return;
+                                }
+
+                                if (group_duration > this.rule.duration) {
+                                    alert('各个规则模块合计答题时间不能超过规则总答题时间!');
+                                    return;
+                                }
+
+                                //获取属性
+                                var rule_post = {
+                                    rule_id: this.rule.rule_id,
+                                    rule_name: this.rule.rule_name,
+                                    quest_num: this.rule.quest_num,
+                                    score: this.rule.score,
+                                    duration: this.rule.duration,
+                                    remark: this.rule.remark,
+                                    opr_id: sessionStorage.userid,
+                                    rule_knowledge: JSON.stringify(this.ruleKnowledge),
+                                    rule_group: JSON.stringify(this.rule_group),
+                                    rule_prop: JSON.stringify(this.rule_prop)
+                                };
+                                savaData(rule_post);
+                            },
+                            selRequire: function (groupindex) {
+                                this.curgroupindex = groupindex;
+                                ptype_id = 85;
+                                layer.open({
+                                    type: 2,
+                                    title: "选择属性",
+                                    area: ['450px', '550px'],
+                                    content: '/admin/property_selector'
+                                });
+                            },
+                            setGroupRequire: function (prop_id, prop_name) {
+                                this.rule_group[this.curgroupindex].require_id = prop_id;
+                                this.rule_group[this.curgroupindex].require_name = prop_name;
+
+                                //触发vue数组更新
+                                this.rule_group.reverse();
+                                this.rule_group.reverse();
+                            },
+                            clearRequire: function (index) {
+                                this.rule_group[index].require_id = 0;
+                                this.rule_group[index].require_name = '';
+
+                                //触发vue数组更新
+                                this.rule_group.reverse();
+                                this.rule_group.reverse();
+                            },
+                            //初始化数据
+                            initRuleData: function (rule_id) {
+                                //编辑界面打开时候初始化属性
+                                $("#ptype").html(prop_html);
+                                initPropChoose(AddProp);
+                                var _self = this;
+                                this.step = 1;
+                                this.rule.rule_id = 0;
+                                this.rule.rule_name = '';
+                                this.rule.quest_num = 0;
+                                this.rule.score = 0;
+                                this.rule.duration = 0;
+                                this.ruleKnowledge = [];
+                                this.rule_group = [];
+                                this.rule_group_knowledge_tmp = [];
+                                if (rule_id) {
+                                    //提取服务端的组卷规则数据
+                                    _ajax_post(
+                                            "GET",
+                                            server_url + "/rule/getruleinfo", {
+                                                rule_id: rule_id
+                                            }, function (data) {
+                                                _self.rule.rule_id = data.rule_id;
+                                                _self.rule.rule_name = data.rule_name;
+                                                _self.rule.quest_num = data.quest_num;
+                                                _self.rule.score = data.score;
+                                                _self.rule.duration = data.duration;
+                                                _self.ruleKnowledge = data.ruleKnowledge;
+                                                _self.rule_group = data.ruleGroup;
+                                                for (var prop of data.prop_value) {
+                                                    if (prop.data_type == 0) {
+                                                        ptype_id = prop.ptype_id;
+                                                        setprop(prop.prop_id, prop.prop_name);
+                                                    }
+                                                }
+                                                Edit();
+                                            });
+                                }
+                            }
+                        }
+                    });
+
+                    $(".wrapper-content").show();
+                });
+    });
+</script>

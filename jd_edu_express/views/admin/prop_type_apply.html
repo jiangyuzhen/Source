@@ -1,0 +1,193 @@
+<% include header.html %>
+<div class="wrapper wrapper-content">
+	<div class="ibox float-e-margins">
+		<button id="btn_add" class="btn btn-primary"><i class="fa fa-plus"></i>&nbsp;添加</button>
+		<div class="ibox-content">
+			<table id="bstable"></table>
+		</div>
+	</div>
+</div>
+<!--弹出编辑窗口-->
+<div id="edit-form" class="container" hidden="hidden" style="width: 600px;">
+	<div class="panel panel-primary">
+		<div class="panel-body">
+			<form role="form" class="form-post form-horizontal">
+				<input id="edit_ptype_id" name="ptype_id" class="form-control" type="hidden">
+				<input id="is_apply" name="is_apply" class="form-control" type="hidden">
+				<input id="data_type" name="data_type" class="form-control" type="hidden">
+				<input id="edit_sort_no" name="sort_no" class="form-control" type="hidden">
+				<div class="form-group">
+					<label class="col-md-3 control-label text-right">类别名称</label>
+					<div class="col-md-9">
+						<input id="edit_ptype_name" name="ptype_name" class="form-control">
+					</div>
+				</div>
+
+				<div class="text-right ">
+					<button class="btn btn-sm btn-w-m btn-default" type="button" onclick="layer.close(edit_index);">取消</button>
+					<button id="bntSubmit" type="button" class="btn btn-sm btn-w-m btn-primary">确定</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+<% include footer.html %>
+<script>
+	var edit_index;
+
+	function ShowEdit() {
+		edit_index = layer.open({
+			type: 1,
+			title: "应用目录类别",
+			shadeClose: true,
+			maxmin: true,
+			area: ['600px', '240px'],
+			content: $('#edit-form'),
+		});
+	}
+
+	//初始化表格
+	function initTable() {
+		$('#bstable').bootstrapTable({
+			columns: [{
+				field: 'row_index',
+				align: 'center',
+				width: 40,
+				formatter: function(value, row, index) {
+					return index + 1;
+				}
+			}, {
+				field: 'ptype_name',
+				title: '应用目录类别',
+				align: 'center',
+				formatter: function(value, row, index) {
+					return '<a class="edit">' + value + '</a>';
+				},
+				events: operateEvents
+			}, {
+				field: 'opr',
+				title: '操作',
+				align: 'center',
+				width: 120,
+				formatter: function(value, row, index) {
+					return '<a class="delete">删除</a>&nbsp;<a class="order">设置序号</a>';
+				},
+				events: operateEvents
+			}]
+		}).on('click-row.bs.table', function(e, row, $element) {
+			$('.success').removeClass('success');
+			$($element).addClass('success');
+		});
+
+		retrieve();
+	}
+
+	//表格操作按钮点击事件处理
+	window.operateEvents = {
+		'click .edit': function(e, value, row, index) {
+			$('#edit_ptype_id').val(row.ptype_id);
+			$('#edit_ptype_name').val(row.ptype_name);
+			$('#edit_sort_no').val(row.sort_no);
+			ShowEdit();
+		},
+		'click .delete': function(e, value, row, index) {
+			var layer_index;
+			layer_index = layer.confirm('您确定要删除【' + row.ptype_name + '】吗？', {
+				btn: ['确定', '取消']
+			}, function() {
+				_ajax_post("POST", server_url + "/property/delproptype", {
+						ptype_id: row.ptype_id
+					},
+					function() {
+						_toastr_ok('删除成功');
+						retrieve();
+					});
+				layer.close(layer_index);
+			}, function() {
+				layer.close(layer_index);
+			});
+		},
+		'click .order': function(e, value, row, index) {
+			layer_index = layer.prompt({
+				title: '请输入序号',
+				formType: 0 //prompt风格，支持0-2
+			}, function(pass) {
+				var order_no = 0;
+				if(isNaN(pass)) {
+					alert('请输入数字!')
+					return;
+				}
+
+				var data = $("#bstable").bootstrapTable('getData');
+
+				if(pass < 1 || pass > data.length) {
+					alert('序号输入范围在 1 到 ' + data.length + '！')
+					return;
+				}
+
+				var sort_no = 0;
+				var sort_no_list = [];
+				sort_no_list.push({
+					ptype_id: row.ptype_id,
+					sort_no: pass
+				})
+
+				for(var i of data) {
+					if(i.ptype_id == row.ptype_id) continue;
+					sort_no++;
+					if(sort_no == pass) {
+						sort_no++;
+					}
+					sort_no_list.push({
+						ptype_id: i.ptype_id,
+						sort_no: sort_no
+					})
+				}
+
+				_ajax_post("POST", server_url + "/property/updateproptypesortno", {
+						sort_no_list: JSON.stringify(sort_no_list)
+					},
+					function(data) {
+						retrieve();
+					}
+				);
+
+				layer.close(layer_index);
+			});
+		}
+	};
+
+	//刷新获取数据
+	function retrieve() {
+		_ajax_post("GET", server_url + "/property/getproptype", {
+			is_apply:1
+		},
+			function(data) {
+				$("#bstable").bootstrapTable('load', data);
+			});
+	}
+
+	$(document).ready(function() {
+		$("#is_apply").val("1");
+		$("#data_type").val("0");
+		
+		//绑定添加按钮事件
+		$("#btn_add").click(function() {
+			$('#edit_ptype_id').val('');
+			$('#edit_ptype_name').val('');
+			ShowEdit();
+		});
+
+		$("#bntSubmit").click(function() {
+			_ajax_post("POST", server_url + "/property/updateproptype",
+				$('.form-post').serialize(),
+				function() {
+					layer.close(edit_index);
+					_toastr_ok('保存成功!');
+					retrieve();
+				});
+		});
+
+		initTable();
+	});
+</script>

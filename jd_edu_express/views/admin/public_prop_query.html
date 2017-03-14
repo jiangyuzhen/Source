@@ -1,0 +1,251 @@
+<% include header.html %>
+<div id="container" class="container" hidden="hidden">
+    <div class="panel panel-primary">
+        <div class="panel-body">
+            <form id="form" class="form-horizontal" query_target_id="<%= query_target_id %>">
+                <div id="ptype" class="col-md-11"></div>
+                <div class="text-center">
+                    <button class="btn btn-sm btn-w-m btn-default" onclick="parent.layer.close(index);">取消</button>
+                    <button id="btnSubmit" type="button" class="btn btn-sm btn-w-m btn-primary">确定</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<% include footer.html %>
+
+<script>
+    var index;
+    var choosedprop = [];
+    var loading_index;
+    var query_target_id;
+
+    //点击属性选择器
+    function AddProp(item) {
+        //获取点击的属性ID
+        ptype_id = $(item).attr("ptype_id");
+        if(!ptype_id) return;
+
+        //获取之前选择的属性
+        choosedprop = [];
+
+        //重新生成目录属性值
+        $(".prop-chosen-choices").each(function(index) {
+            var values = [];
+            var ptype_id = $(this).attr("ptype_id");
+            $(".prop-search-choice[ptype_id='" + ptype_id + "']").each(function(index) {
+                values.push($(this).attr("data-value"));
+            });
+            $("input[id='ptype_id_" + ptype_id + "']").val(values.join(','));
+        });
+
+        var is_beforeptype = true;
+        $("#ptype input").each(function(index) {
+            var pre_ptype_id = $(this).attr("name");
+            if(ptype_id == pre_ptype_id) {
+                is_beforeptype = false;
+                return;
+            }
+            if(!is_beforeptype) return;
+
+            var prop_value = $(this).val();
+            var data_type = $(this).attr("data_type");
+
+            if(data_type != 0) return;
+            if(prop_value.length < 1) return;
+
+            prop_ids = prop_value.split(",")
+            for(var i in prop_ids) {
+                if(prop_ids[i] != '') {
+                    var prop_id = 0;
+                    if(data_type == 0) prop_id = prop_ids[i];
+
+                    choosedprop.push({
+                        ptype_id: pre_ptype_id,
+                        prop_id: prop_id,
+                    });
+
+                }
+            }
+        });
+
+        layer.open({
+            type: 2,
+            title: "选择属性",
+            area: ['450px', '550px'],
+            content: '/admin/property_selector',
+        });
+    }
+
+    function setprop(parm_prpo_id, parm_prpo_name) {
+        //检查是否存在重复的值，如果有则不再添加
+        var lb_repeat = false;
+        $(".prop-search-choice[ptype_id='" + ptype_id + "']").each(function(index) {
+            var data_value = $(this).attr("data-value");
+            data_value = data_value.replace('"', '')
+
+            if(parm_prpo_id == data_value) {
+                lb_repeat = true;
+                return false;
+            }
+        });
+        if(lb_repeat) return;
+
+        //添加选择项目
+        var temp = '<li class="prop-search-choice" ptype_id="' + ptype_id + '" data-value=' + parm_prpo_id + '><span>' + parm_prpo_name + '</span><a class="prop-search-choice-close" data-value=' + parm_prpo_id + '></a></li>';
+        $("[add_ptype_id='" + ptype_id + "']").before(temp);
+
+        var values = [];
+        $(".prop-search-choice[ptype_id='" + ptype_id + "']").each(function(index) {
+            values.push($(this).attr("data-value"));
+        });
+
+        //选择后将值重新赋值在隐藏的input上
+        $("input[id='ptype_id_" + ptype_id + "']").val(values.join(','));
+    }
+
+    //处理属性类别数据
+    function loadptypedate(data) {
+        var html = '',
+                html_type = '';
+        $.each(data, function(n, value) {
+            //暂时只处理目录属性提取条件
+            if(value.data_type != 0) {
+                return;
+            }
+            var html_required = '';
+            html += '<div class="form-group" data_type="' + value.data_type + '">';
+            html += '<label class="col-sm-3 control-label label_ptype_id_' + value.ptype_id + '">' + value.ptype_name + html_required + ':</label>';
+            html += '<div class="col-sm-9">';
+
+            //如果数目录类型的属性，则添加为属性选择器
+            if(value.data_type == 0) {
+                html += '<div class="prop-chosen-container">';
+                html += '<ul class="prop-chosen-choices" ptype_id="' + value.ptype_id + '">';
+                html += '<li class="prop-chosen-add" add_ptype_id="' + value.ptype_id + '"></li>';
+                html += '</ul></div>';
+                html_type = 'hidden';
+            }
+            //非目录类型的属性添加为普通输入框
+            else {
+                html_type = 'text';
+            }
+            html += '<input id="ptype_id_' + value.ptype_id +
+                    '" class="form-control" name="' + value.ptype_id +
+                    '" type="' + html_type +
+                    '" data_type="' + value.data_type +
+                    '" choose_required="' + value.required + '">';
+            html += '</div></div>';
+        });
+
+        $("#ptype").html(html);
+
+        //初始化属性选择器，传输添加回调方法
+        initPropChoose(AddProp);
+    }
+
+    function getPaperProp() {
+        var paper_props = [];
+
+        $(".prop-search-choice").each(function(index) {
+            var ptype_id = $(this).attr("ptype_id");
+            var prop_value = $(this).attr("data-value");
+            var prop_text = $(this).children("span").html();
+
+            if(prop_value.length < 1) return;
+
+            paper_props.push({
+                ptype_id: ptype_id,
+                prop_value: prop_value,
+                prop_text: prop_text
+            });
+        });
+
+        return paper_props;
+    }
+
+    function saveData() {
+        //重新生成目录属性值
+        $(".prop-chosen-choices").each(function(index) {
+            var values = [];
+            var ptype_id = $(this).attr("ptype_id");
+            $(".prop-search-choice[ptype_id='" + ptype_id + "']").each(function(index) {
+                values.push($(this).attr("data-value"));
+            });
+            $("input[id='ptype_id_" + ptype_id + "']").val(values.join(','));
+        });
+
+        //获取选择的属性值，并判断是否必选
+        var paper_prop = [];
+        var check_ok = true;
+
+        //构造题目名称
+        var prop_names = '';
+        $(".prop-search-choice span").each(function (index) {
+            if (prop_names.length > 0) prop_names += ",";
+
+            var tmp_name = $(this).html();
+
+            //至提取最后一端
+            var tmps = tmp_name.split('&gt;');
+            tmp_name = tmps[tmps.length - 1];
+
+            prop_names += tmp_name;
+        });
+
+        $("#ptype input").each(function(index) {
+            var ptype_id = $(this).attr("name");
+            var prop_name = $(".label_ptype_id_"+ptype_id).html();
+            prop_name = prop_name.replace(":","");
+            var prop_value = $(this).val();
+            var data_type = $(this).attr("data_type");
+
+            if(prop_value.length < 1) {
+                return;
+            }
+
+            prop_ids = prop_value.split(",");
+            for(var i in prop_ids) {
+                if(prop_ids[i] != '') {
+                    var prop_id = 0;
+                    var text_value = '';
+                    var num_value = 0;
+
+                    if(data_type == 0) prop_id = prop_ids[i];
+                    if(data_type == 1) num_value = prop_ids[i];
+                    if(data_type == 2) text_value = prop_ids[i];
+
+                    paper_prop.push({
+                        ptype_id: ptype_id,
+                        prop_id: prop_id,
+                        num_value: num_value,
+                        text_value: text_value,
+                        data_type:data_type,
+                        prop_names:prop_names
+                    });
+                }
+            }
+        });
+
+        parent.getquery(paper_prop);
+        parent.layer.close(index);
+    }
+
+    $(document).ready(function() {
+        query_target_id = $("#form").attr("query_target_id");
+        index = parent.layer.getFrameIndex(window.name);
+
+        //初始化属性选择
+        _ajax_post("GET", server_url + "/property/gettargetproptype", {
+            target_id: query_target_id
+        }, function(data) {
+            loadptypedate(data);
+            $("#container").show();
+        });
+
+        $("#btnSubmit").click(function() {
+            saveData();
+        });
+    });
+</script>

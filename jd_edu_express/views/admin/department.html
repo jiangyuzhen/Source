@@ -1,0 +1,210 @@
+<% include header.html %>
+<link rel="stylesheet" href="css/plugins/jsTree/style.min.css" />
+<div class="wrapper wrapper-content">
+	<div class="ibox float-e-margins">
+		<button type="button" class="btn btn-primary" onclick="reloadTree();"><i class="fa fa-refresh"></i>&nbsp;刷新</button>		
+		<div class="btn-group">			
+			<button data-toggle="dropdown" class="btn btn-primary dropdown-toggle"><i class="fa fa-plus">
+				</i>&nbsp;添加 <span class="caret"></span>
+			</button>
+			<ul class="dropdown-menu">
+				<li>
+					<a id="btn_add1">添加同级项目</a>
+				</li>
+				<li>
+					<a id="btn_add2">添加子级项目</a>
+				</li>
+			</ul>
+		</div>
+
+		<a id="btn_modify" class="btn btn-primary"><i class="fa fa-plus"></i>&nbsp;修改</a>
+		<button id="btn_del" type="button" class="btn btn-primary"><i class="fa fa-remove"></i>&nbsp;删除</button>
+		<div class="ibox-content">
+			<div id="jstree"></div>
+		</div>
+	</div>
+</div>
+
+<!--弹出编辑窗口-->
+<div id="edit-form" class="container" hidden="hidden" style="width: 600px;">
+	<div class="panel panel-primary">
+		<div class="panel-body">
+			<form id="form-post">
+				<input id="parent_id" name="parent_id" class="form-control" type="hidden">
+				<input id="organ_id" name="organ_id" class="form-control" type="hidden">
+				<input id="department_id" name="department_id" class="form-control" type="hidden">
+				<div class="form-group">
+					<label>上级部门：</label>
+					<input id="parent_name" class="form-control" readonly="readonly">
+				</div>
+				<div class="form-group">
+					<label>部门：</label>
+					<input id="department_name" name="department_name" class="form-control">
+				</div>
+				<div class="text-right ">
+					<button class="btn btn-sm btn-w-m btn-default" type="button" onclick="layer.close(edit_index);">取消</button>
+					<button id="bntSubmit" type="button" class="btn btn-sm btn-w-m btn-primary">确定</button>
+				</div>
+			</form>
+		</div>
+
+	</div>
+</div>
+
+<% include footer.html %>
+<script type="text/javascript" src="js/plugins/jsTree/jstree.min.js"></script>
+<script>
+	var parent_id, parent_name;
+	var department_id, department_name;
+	var is_new;
+	var edit_index;
+
+	function ShowEdit() {
+		edit_index = layer.open({
+			type: 1,
+			title: "部门编辑",
+			shadeClose: true,
+			maxmin: true,
+			area: ['600px', '270px'],
+			content: $('#edit-form'),
+		});
+	}
+
+	function RenameTreeNode(data) {
+		var ref = $('#jstree').jstree(true),
+			sel = ref.get_selected();
+		if(is_new) {
+			var new_item = {
+				id: data.department_id,
+				parent: $('#parent_id').val(),
+				text: $('#department_name').val()
+			};
+
+			if(new_item.parent == "" || new_item.parent == "0") {
+				new_item.parent = "#";
+			}
+
+			ref.create_node(new_item.parent, new_item);
+		} else {
+			if(!sel.length) {
+				return false;
+			}
+			ref.rename_node(sel, $('#department_name').val());
+		}
+	}
+
+	//刷新树
+	function reloadTree() {
+		_ajax_post(
+			"GET",
+			server_url + "/baseinfo/getdepartmenttree", {
+				organ_id:sessionStorage.organ_id
+			},
+			function(data) {
+				$("#jstree").jstree("destroy");
+				$("#jstree").jstree({
+					'core': {
+						"check_callback": true,
+						'data': data
+					},
+					"plugins": ["types"],
+					"lang": {
+						loading: '目录加载中...'
+					},
+					"types": {
+						"default": {
+							"icon": "fa fa-folder"
+						},
+					}
+				}).on("changed.jstree", function(e, data) {
+					var sel = data.instance.get_selected(true);
+					if(!sel.length) {
+						return false;
+					}
+
+					parent_id = sel[0].parent;
+					parent_name = data.instance.get_node(parent_id).text;
+					department_id = sel[0].id;
+					department_name = sel[0].text;
+				});
+			});
+	}
+
+	$(document).ready(function() {
+		//绑定添加按钮事件(同级项目)
+		$("#btn_add1").click(function() {
+			$('#department_id').val('');
+			$('#department_name').val('');
+			$('#parent_id').val(parent_id);
+			$('#parent_name').val(parent_name);
+			is_new = true;
+			ShowEdit();
+		});
+
+		//绑定添加按钮事件(子级项目)
+		$("#btn_add2").click(function() {
+			$('#parent_id').val(department_id);
+			$('#parent_name').val(department_name);
+			$('#department_id').val('');
+			$('#department_name').val('');
+			is_new = true;
+			ShowEdit();
+		});
+
+		//修改按钮点击
+		$("#btn_modify").click(function() {
+			var ref = $('#jstree').jstree(true),
+				sel = ref.get_selected();
+			if(!sel.length) {
+				return false;
+			}
+
+			$('#department_id').val(department_id);
+			$('#department_name').val(department_name);
+			$('#parent_id').val(parent_id);
+			$('#parent_name').val(parent_name);
+			is_new = false;
+			ShowEdit();
+		});
+
+		//删除按钮点击
+		$("#btn_del").click(function() {
+			var layer_index;
+			layer_index = layer.confirm("您确定要删除【" + department_name + "】吗?", {
+				btn: ['确定', '取消']
+			}, function() {
+				_ajax_post(
+					"POST",
+					server_url + "/baseinfo/deldepartment", {
+						department_id: department_id
+					},
+					function(){
+						var ref = $('#jstree').jstree(true),
+							sel = ref.get_selected();
+						if(!sel.length) {
+							return false;
+						}
+						ref.delete_node(sel);						
+					});
+				layer.close(layer_index);
+			}, function() {
+				layer.close(layer_index);
+			});
+		});
+
+		//新增,修改按钮提交
+		$("#bntSubmit").click(function() {
+			_ajax_post("POST", server_url + "/baseinfo/updatedepartment",
+				$('#form-post').serialize(),
+				function(data) {
+					layer.close(edit_index);
+					RenameTreeNode(data);
+				});
+		});
+
+	
+		reloadTree();
+		
+		$("#organ_id").val(sessionStorage.organ_id);
+	});
+</script>

@@ -1,0 +1,250 @@
+<% include header.html %>
+
+<div class="wrapper wrapper-content">
+	<div class="ibox float-e-margins">
+		<button class="btn btn-primary" onclick="retrieve();"><i class="fa fa-refresh"></i>&nbsp;刷新</button>
+		<button id="btn_add" class="btn btn-primary"><i class="fa fa-plus"></i>&nbsp;添加</button>
+		<div class="ibox-content">
+			<table id="bstable"></table>
+		</div>
+	</div>
+</div>
+
+<!--弹出编辑窗口-->
+<div id="edit-form" class="container" hidden="hidden" style="width: 500px;">
+	<div class="panel panel-primary">
+		<div class="panel-body">
+			<form role="form" class="form-post form-horizontal">
+				<input id="edit_organ_id" name="organ_id" class="form-control" type="hidden">	
+				<input id="edit_opr_id" name="opr_id" class="form-control" type="hidden">
+				<div class="form-group">						
+					<label class="col-md-2 control-label text-right">账号</label>
+					<div class="col-md-9">
+						<input id="edit_opr_name" name="opr_name" class="form-control">
+					</div>
+				</div>
+				<div class="form-group">						
+					<label class="col-md-2 control-label text-right">姓名</label>
+					<div class="col-md-9">
+						<input id="edit_real_name" name="real_name" class="form-control">
+					</div>
+				</div>				
+				<div class="form-group">						
+					<label class="col-md-2 control-label text-right">邮箱</label>
+					<div class="col-md-9">
+						<input id="edit_email" name="email" class="form-control">
+					</div>
+				</div>
+				<div class="form-group">						
+					<label class="col-md-2 control-label text-right">电话</label>
+					<div class="col-md-9">
+						<input id="edit_tel" name="tel" class="form-control">
+					</div>
+				</div>
+				<div class="form-group">						
+					<label class="col-md-2 control-label text-right">角色</label>
+					<div class="col-md-9">
+						<select id="edit_role" name="role_id" class="form-control">
+						</select>						
+					</div>
+				</div>				
+				<div id="form-pwd1" class="form-group">						
+					<label class="col-md-2 control-label text-right">密码</label>
+					<div class="col-md-9">
+						<input id="edit_pwd1" name="password" class="form-control" type="password">
+					</div>
+				</div>
+				<div id="form-pwd2" class="form-group">						
+					<label class="col-md-2 control-label text-right">再次输入密码</label>
+					<div class="col-md-9">
+						<input id="edit_pwd2" class="form-control" type="password">
+					</div>
+				</div>
+				<div class="text-right ">
+					<button class="btn btn-sm btn-w-m btn-default" type="button" onclick="layer.close(edit_index);">取消</button>
+					<button id="bntSubmit" type="button" class="btn btn-sm btn-w-m btn-primary">确定</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+<% include footer.html %>
+
+<script>
+	var edit_index;
+	var opr_id = 0;
+
+	function ShowEdit() {
+		edit_index = layer.open({
+			type: 1,
+			title: "用户编辑",
+			shadeClose: true,
+			maxmin: true,
+			area: ['550px', '500px'],
+			content: $('#edit-form'),
+		});
+	}
+	
+	//初始化表格
+	function initTable() {
+		$('#bstable').bootstrapTable({
+			columns: [{
+				field: 'row_index',
+				align: 'center',
+				width: 40,
+				formatter:function(value,row,index){
+					return index + 1;
+				}
+			},{
+				field: 'opr_name',
+				title: '用户',
+				align: 'center',
+				formatter: function(value, row, index) {
+					return '<a class="edit">' + value + '</a>';
+				},
+				events: operateEvents
+			},{
+				field: 'tel',
+				title: '电话',
+				align: 'center',
+				width:100,
+				formatter: function(value, row, index) {
+					return '<a class="edit">' + value + '</a>';
+				},
+				events: operateEvents
+			},{
+				field: 'email',
+				title: '邮箱',
+				align: 'center',
+				width:100,
+				formatter: function(value, row, index) {
+					return '<a class="edit">' + value + '</a>';
+				},
+				events: operateEvents
+			}, {
+				field: 'role_name',
+				title: '角色',
+				align: 'center',
+				width:160,
+				formatter: function(value, row, index) {
+					return '<a class="edit">' + value + '</a>';
+				},
+				events: operateEvents
+			}, {
+				field: 'del',
+				title: '删除',
+				align: 'center',
+				width: 40,
+				formatter: function(value, row, index) {
+					return '<a class="delete"><i class="fa fa-remove"></i></a>';
+				},
+				events: operateEvents
+			}]
+		}).on('click-row.bs.table', function(e, row, $element) {
+			$('.success').removeClass('success');
+			$($element).addClass('success');
+		});
+
+		retrieve();
+	}
+
+	//表格操作按钮点击事件处理
+	window.operateEvents = {
+		'click .edit': function(e, value, row, index) {
+			$('#edit_opr_id').val(row.opr_id);
+			$('#edit_opr_name').val(row.opr_name);
+			$('#edit_role').val(row.role_id);			
+			$('#edit_tel').val(row.tel);
+			$('#edit_email').val(row.email);
+			$('#edit_real_name').val(row.real_name);
+			
+			$('#form-pwd1').hide();
+			$('#form-pwd2').hide();
+			ShowEdit();
+		},
+		'click .delete': function(e, value, row, index) {
+			var layer_index;
+			layer_index = layer.confirm('您确定要删除【' + row.opr_name + '】吗？', {
+				btn: ['确定', '取消']
+			}, function() {
+				_ajax_post("POST", server_url + "/public/delsysoperator", {
+						opr_id: row.opr_id
+					},
+					function() {
+						_toastr_ok('删除成功');
+						retrieve();
+					});
+				layer.close(layer_index);
+			}, function() {
+				layer.close(layer_index);
+			});
+		}
+	};
+
+	//刷新获取数据
+	function retrieve() {
+		_ajax_post("GET", server_url + "/public/getsysoperator", {
+				organ_id:sessionStorage.organ_id
+			},
+			function(data) {
+				$("#bstable").bootstrapTable('load', data);
+			});
+	}
+
+	$(document).ready(function() {
+		//绑定添加按钮事件
+		$("#btn_add").click(function() {
+			$('#edit_opr_id').val('');
+			$('#edit_opr_name').val('');		
+			$('#edit_tel').val('');
+			$('#edit_email').val('');
+			$('#edit_real_name').val('');			
+			$('#edit_pwd1').val('');
+			$('#edit_pwd2').val('');
+			$('#edit_role').val(1);
+			$('#form-pwd1').show();
+			$('#form-pwd2').show();
+			
+			ShowEdit();
+		});
+
+		$("#bntSubmit").click(function() {
+			//数据检查
+			if($("#edit_opr_name").val() == ''){
+				_toastr_err("请输入账号!");
+				return
+			}
+			
+			if($("#edit_opr_id").val() == ''){
+				if($("#edit_pwd1").val() == ''){
+					_toastr_err("请输入密码!");
+					return
+				}
+	
+				if($("#edit_pwd1").val() != $("#edit_pwd2").val()){
+					_toastr_err("两次输入的密码不一致!");
+					return
+				}				
+			}
+			_ajax_post("POST", server_url + "/public/updatesysoperator",
+				$('.form-post').serialize(),
+				function() {
+					layer.close(edit_index);
+					_toastr_ok('保存成功!');
+					retrieve();
+				});
+		});
+
+		//初始化角色
+		_ajax_post("POST", server_url + "/public/getsysrole",{},
+			function(data) {
+				for(var item of data){
+					$("#edit_role").append("<option value='"+item.role_id+"'>"+item.role_name+"</option>"); 
+				}				
+			});
+		
+		$('#edit_organ_id_id').val(sessionStorage.organ_id);
+		
+		initTable();
+	});
+</script>

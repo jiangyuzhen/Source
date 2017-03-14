@@ -1,0 +1,497 @@
+<script>
+	var token = sessionStorage.getItem("token");
+	if(!token) {
+		location.href = "/admin/login";
+	}
+</script>
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="renderer" content="webkit">
+		<meta http-equiv="Cache-Control" content="no-siteapp" />
+		<title>云学时代教育平台 - 主页</title>
+
+		<link href="css/plugins/toastr/toastr.min.css" rel="stylesheet">
+		<link href="css/bootstrap.min.css?v=3.3.5" rel="stylesheet">
+		<link href="css/font-awesome.min.css?v=4.4.0" rel="stylesheet">
+		<link href="css/style.min.css?v=4.0.0" rel="stylesheet">
+		<link rel="stylesheet" href="css/plugins/ztree/zTreeStyle/zTreeStyle.css" />
+	</head>
+
+	<style type="text/css">
+		.sign-title {
+			font-size: 24px;
+		}
+	</style>
+
+	<body class="fixed-sidebar full-height-layout gray-bg" style="overflow:hidden">
+		<div id="wrapper">
+			<!--左侧导航开始-->
+			<nav class="navbar-default navbar-static-side" role="navigation">
+				<div class="sidebar-collapse">
+					<ul class="nav" id="side-menu">
+					</ul>
+				</div>
+			</nav>
+			<!--左侧导航结束-->
+			<!--右侧部分开始-->
+			<div id="page-wrapper" class="gray-bg dashbard-1">
+				<div class="row border-bottom">
+					<nav class="navbar navbar-static-top" role="navigation" style="margin-bottom: 0">
+						<div class="navbar-header">
+							<a class="navbar-minimalize minimalize-styl-2 btn btn-primary "><i class="fa fa-bars"></i> </a>
+							<div class="text-center">
+								<!--<h1 class="sign-title">云学时代教育平台</h1>-->
+							</div>
+						</div>
+
+						<ul class="nav navbar-top-links navbar-right">
+							<li class="dropdown">
+								<a id="username" role="button" data-toggle="dropdown">Admin<span class="caret"></span></a>
+								<ul class="dropdown-menu">
+									<li class="J_tabShowActive">
+										<a id="btn_change_pwd" style="color: blue;">修改密码</a>
+									</li>
+								</ul>
+							</li>
+						</ul>
+					</nav>
+				</div>
+				<div class="row content-tabs">
+					<button class="roll-nav roll-left J_tabLeft"><i class="fa fa-backward"></i>
+                </button>
+					<nav class="page-tabs J_menuTabs">
+						<div class="page-tabs-content">
+							<a href="javascript:;" class="active J_menuTab" data-id="/admin/index_main">首页</a>
+						</div>
+					</nav>
+					<button class="roll-nav roll-right J_tabRight"><i class="fa fa-forward"></i>
+                </button>
+					<div class="btn-group roll-nav roll-right">
+						<button class="dropdown J_tabClose" data-toggle="dropdown">操作<span class="caret"></span>
+
+                    </button>
+						<ul role="menu" class="dropdown-menu dropdown-menu-right">
+							<li class="J_tabShowActive">
+								<a>定位当前选项卡</a>
+							</li>
+							<li class="divider"></li>
+							<li class="J_tabCloseAll">
+								<a>关闭全部选项卡</a>
+							</li>
+							<li class="J_tabCloseOther">
+								<a>关闭其他选项卡</a>
+							</li>
+						</ul>
+					</div>
+					<a onclick="logout()" class="roll-nav roll-right J_tabExit"><i class="fa fa fa-sign-out"></i> 退出</a>
+				</div>
+				<div class="row J_mainContent" id="content-main">
+					<iframe class="J_iframe" name="iframe0" width="100%" height="100%" src="/admin/index_main" frameborder="0" data-id="index_v1.html" seamless></iframe>
+				</div>
+			</div>
+			<!--右侧部分结束-->
+		</div>
+
+		<!--弹出编辑窗口-->
+		<div id="edit-form" class="container" hidden="hidden" style="width: 500px;">
+			<div class="panel panel-primary">
+				<div class="panel-body">
+					<form role="form" class="form-post form-horizontal">
+						<input id="edit_opr_id" name="opr_id" class="form-control" type="hidden">
+						<div class="form-group">
+							<label class="col-md-3 control-label text-right">原密码</label>
+							<div class="col-md-9">
+								<input id="edit_old_pwd" name="old_pwd" class="form-control" type="password">
+							</div>
+						</div>
+						<div class="form-group">
+							<label class="col-md-3 control-label text-right">新密码</label>
+							<div class="col-md-9">
+								<input id="edit_new_pwd1" name="new_pwd" class="form-control" type="password">
+							</div>
+						</div>
+						<div class="form-group">
+							<label class="col-md-3 control-label text-right">再次输入</label>
+							<div class="col-md-9">
+								<input id="edit_new_pwd2" class="form-control" type="password">
+							</div>
+						</div>
+						<div class="text-right ">
+							<button class="btn btn-sm btn-w-m btn-default" type="button" onclick="layer.close(edit_index);">取消</button>
+							<button id="bntSubmit" type="button" class="btn btn-sm btn-w-m btn-primary">确定</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+		<div id="ztree" class="ztree" hidden="hidden"></div>
+
+		<script type="text/javascript" src="js/jquery.min.js?v=2.1.4"></script>
+		<script type="text/javascript" src="js/bootstrap.min.js?v=3.3.5"></script>
+		<script type="text/javascript" src="js/plugins/slimscroll/jquery.slimscroll.min.js"></script>
+		<script type="text/javascript" src="js/plugins/layer/layer.min.js"></script>
+		<script type="text/javascript" src="js/contabs.min.js"></script>
+		<script type="text/javascript" src="js/plugins/pace/pace.min.js"></script>
+		<script type="text/javascript" src="js/plugins/toastr/toastr.min.js"></script>
+		<script type="text/javascript" src="js/assets/scripts.min.js"></script>
+		<script type="text/javascript" src="js/hplus.min.js?v=4.0.0"></script>
+		<script type="text/javascript" src="js/plugins/metisMenu/jquery.metisMenu.js"></script>
+		<script type="text/javascript" src="js/plugins/ztree/jquery.ztree.core.min.js"></script>
+		<script type="text/javascript" src="js/plugins/ztree/jquery.ztree.excheck.min.js"></script>
+		<script type="text/javascript" src="js/plugins/ztree/jquery.ztree.exedit.min.js"></script>
+
+		<script>
+			var edit_index;
+			var setting = {
+				check: {
+					enable: true
+				},
+				data: {
+					simpleData: {
+						enable: true
+					}
+				},
+			};
+
+			function t(t) {
+				var e = 0;
+				return $(t).each(function() {
+					e += $(this).outerWidth(!0)
+				}), e
+			}
+
+			function e(e) {
+				var a = t($(e).prevAll()),
+					i = t($(e).nextAll()),
+					n = t($(".content-tabs").children().not(".J_menuTabs")),
+					s = $(".content-tabs").outerWidth(!0) - n,
+					r = 0;
+
+				if($(".page-tabs-content").outerWidth() < s) r = 0;
+				else if(i <= s - $(e).outerWidth(!0) - $(e).next().outerWidth(!0)) {
+					if(s - $(e).next().outerWidth(!0) > i) {
+						r = a;
+						for(var o = e; r - $(o).outerWidth() > $(".page-tabs-content").outerWidth() - s;) r -= $(o).prev().outerWidth(), o = $(o).prev()
+					}
+				} else a > s - $(e).outerWidth(!0) - $(e).prev().outerWidth(!0) && (r = a - $(e).prev().outerWidth(!0));
+
+				$(".page-tabs-content").animate({
+					marginLeft: 0 - r + "px"
+				}, "fast")
+			}
+
+			function a() {
+				var e = Math.abs(parseInt($(".page-tabs-content").css("margin-left"))),
+					a = t($(".content-tabs").children().not(".J_menuTabs")),
+					i = $(".content-tabs").outerWidth(!0) - a,
+					n = 0;
+				if($(".page-tabs-content").width() < i) return !1;
+				for(var s = $(".J_menuTab:first"), r = 0; r + $(s).outerWidth(!0) <= e;) r += $(s).outerWidth(!0), s = $(s).next();
+				if(r = 0, t($(s).prevAll()) > i) {
+					for(; r + $(s).outerWidth(!0) < i && s.length > 0;) r += $(s).outerWidth(!0), s = $(s).prev();
+					n = t($(s).prevAll())
+				}
+				$(".page-tabs-content").animate({
+					marginLeft: 0 - n + "px"
+				}, "fast")
+			}
+
+			function i() {
+				var e = Math.abs(parseInt($(".page-tabs-content").css("margin-left"))),
+					a = t($(".content-tabs").children().not(".J_menuTabs")),
+					i = $(".content-tabs").outerWidth(!0) - a,
+					n = 0;
+				if($(".page-tabs-content").width() < i) return !1;
+				for(var s = $(".J_menuTab:first"), r = 0; r + $(s).outerWidth(!0) <= e;) r += $(s).outerWidth(!0), s = $(s).next();
+				for(r = 0; r + $(s).outerWidth(!0) < i && s.length > 0;) r += $(s).outerWidth(!0), s = $(s).next();
+				n = t($(s).prevAll()), n > 0 && $(".page-tabs-content").animate({
+					marginLeft: 0 - n + "px"
+				}, "fast")
+			}
+
+			function n() {
+				var t = $(this).attr("href"),
+					a = $(this).data("index"),
+					i = $.trim($(this).text()),
+					n = !0;
+				if(void 0 == t || 0 == $.trim(t).length) return !1;
+				if($(".J_menuTab").each(function() {
+						return $(this).data("id") == t ? ($(this).hasClass("active") || ($(this).addClass("active").siblings(".J_menuTab").removeClass("active"), e(this), $(".J_mainContent .J_iframe").each(function() {
+							return $(this).data("id") == t ? ($(this).show().siblings(".J_iframe").hide(), !1) : void 0
+						})), n = !1, !1) : void 0
+					}), n) {
+					var s = '<a href="javascript:;" class="active J_menuTab" data-id="' + t + '">' + i + ' <i class="fa fa-times-circle"></i></a>';
+					$(".J_menuTab").removeClass("active");
+					var r = '<iframe class="J_iframe" name="iframe' + a + '" width="100%" height="100%" src="' + t + '?v=4.0" frameborder="0" data-id="' + t + '" seamless></iframe>';
+					$(".J_mainContent").find("iframe.J_iframe").hide().parents(".J_mainContent").append(r);
+					var o = layer.load(2);
+					$(".J_mainContent iframe:visible").load(function() {
+						layer.close(o)
+					}), $(".J_menuTabs .page-tabs-content").append(s), e($(".J_menuTab.active"))
+				}
+				return !1
+			}
+
+			function s() {
+				var t = $(this).parents(".J_menuTab").data("id"),
+					a = $(this).parents(".J_menuTab").width();
+				if($(this).parents(".J_menuTab").hasClass("active")) {
+					if($(this).parents(".J_menuTab").next(".J_menuTab").size()) {
+						var i = $(this).parents(".J_menuTab").next(".J_menuTab:eq(0)").data("id");
+						$(this).parents(".J_menuTab").next(".J_menuTab:eq(0)").addClass("active"), $(".J_mainContent .J_iframe").each(function() {
+							return $(this).data("id") == i ? ($(this).show().siblings(".J_iframe").hide(), !1) : void 0
+						});
+						var n = parseInt($(".page-tabs-content").css("margin-left"));
+						0 > n && $(".page-tabs-content").animate({
+							marginLeft: n + a + "px"
+						}, "fast"), $(this).parents(".J_menuTab").remove(), $(".J_mainContent .J_iframe").each(function() {
+							return $(this).data("id") == t ? ($(this).remove(), !1) : void 0
+						})
+					}
+					if($(this).parents(".J_menuTab").prev(".J_menuTab").size()) {
+						var i = $(this).parents(".J_menuTab").prev(".J_menuTab:last").data("id");
+						$(this).parents(".J_menuTab").prev(".J_menuTab:last").addClass("active"), $(".J_mainContent .J_iframe").each(function() {
+							return $(this).data("id") == i ? ($(this).show().siblings(".J_iframe").hide(), !1) : void 0
+						}), $(this).parents(".J_menuTab").remove(), $(".J_mainContent .J_iframe").each(function() {
+							return $(this).data("id") == t ? ($(this).remove(), !1) : void 0
+						})
+					}
+				} else $(this).parents(".J_menuTab").remove(), $(".J_mainContent .J_iframe").each(function() {
+					return $(this).data("id") == t ? ($(this).remove(), !1) : void 0
+				}), e($(".J_menuTab.active"));
+				return !1
+			}
+
+			function r() {
+				$(".page-tabs-content").children("[data-id]").not(":first").not(".active").each(function() {
+					$('.J_iframe[data-id="' + $(this).data("id") + '"]').remove(), $(this).remove()
+				}), $(".page-tabs-content").css("margin-left", "0")
+			}
+
+			function o() {
+				e($(".J_menuTab.active"))
+			}
+
+			function d() {
+				if(!$(this).hasClass("active")) {
+					var t = $(this).data("id");
+					$(".J_mainContent .J_iframe").each(function() {
+						return $(this).data("id") == t ? ($(this).show().siblings(".J_iframe").hide(), !1) : void 0
+					}), $(this).addClass("active").siblings(".J_menuTab").removeClass("active"), e(this)
+				}
+			}
+
+			function c() {
+				var t = $('.J_iframe[data-id="' + $(this).data("id") + '"]'),
+					e = t.attr("src"),
+					a = layer.load(2);
+				t.attr("src", e).load(function() {
+					layer.close(a)
+				})
+			}
+
+			function logout() {
+				sessionStorage.removeItem("token");
+				sessionStorage.removeItem("username");
+				sessionStorage.removeItem("userid");
+				location.href = "/admin/login";
+			};
+
+			function initmenu() {
+
+			};
+
+			function NavToggle() {
+				$(".navbar-minimalize").trigger("click")
+			}
+
+			function SmoothlyMenu() {
+				$("body").hasClass("mini-navbar") ? $("body").hasClass("fixed-sidebar") ? ($("#side-menu").hide(), setTimeout(function() {
+					$("#side-menu").fadeIn(500)
+				}, 300)) : $("#side-menu").removeAttr("style") : ($("#side-menu").hide(), setTimeout(function() {
+					$("#side-menu").fadeIn(500)
+				}, 100))
+			}
+
+			function localStorageSupport() {
+				return "localStorage" in window && null !== window.localStorage
+			}
+
+			layer.config({
+					skin: "layer-ext-moon"
+				}),
+
+				$(document).ready(function() {
+					$("#btn_change_pwd").click(function() {
+						$('#edit_opr_id').val(sessionStorage.userid);
+						$('#edit_old_pwd').val('');
+						$('#edit_new_pwd1').val('');
+						$('#edit_new_pwd2').val('');
+						edit_index = layer.open({
+							type: 1,
+							title: "修改密码",
+							shadeClose: true,
+							maxmin: true,
+							area: ['540px', '300px'],
+							content: $('#edit-form'),
+						});
+					});
+					$("#bntSubmit").click(function() {
+						if($("#edit_old_pwd").val() == '') {
+							_toastr_err("请输入原密码!");
+							return
+						}
+						if($("#edit_new_pwd1").val() == '') {
+							_toastr_err("请输入密码!");
+							return
+						}
+						if($("#edit_new_pwd1").val() != $("#edit_new_pwd2").val()) {
+							_toastr_err("两次输入的密码不一致!");
+							return
+						}
+						_ajax_post("POST", server_url + "/public/sysoprchangpwd", $('.form-post').serialize(), function() {
+							layer.close(edit_index);
+							_toastr_ok('修改成功!');
+						});
+					});
+					$("#username").html(sessionStorage.username + '<span class="caret"></span>');
+
+					_ajax_post(
+						"GET",
+						server_url + "/public/getoprmenu", {
+							opr_id: sessionStorage.userid
+						},
+						function(data) {
+							$("#ztree").empty();
+							$.fn.zTree.init($("#ztree"), setting, data);
+							var zTree = $.fn.zTree.getZTreeObj("ztree");
+							zTree.expandAll(true);
+							var nodes = zTree.getNodes();
+							var items = zTree.transformToArray(nodes);
+							var html = ''
+							var current_level = 0;
+							var data_index = 0;
+
+							$("#side-menu").append('<li class="nav-header"><div class="dropdown profile-element"></div><div class="logo-element">云学</div></li>');
+
+							for(var i = 0; i < items.length; i++) {
+								if(items[i].checked || items[i].check_Child_State == 1 || items[i].check_Child_State == 2) {
+									var str_leve = '';
+									var str_img = ''
+									if(items[i].img) {
+										str_img = '<i class="fa ' + items[i].img + '"></i>';
+									}
+									if(items[i].isParent) {
+										if(items[i].level == 0) {
+											html = '<li id="' + items[i].id + '"><a>' + str_img + '<span class="nav-label">' + items[i].name + '</span><span class="fa arrow"></span></a></li>';
+											$("#side-menu").append(html)
+											if(items[i].isParent) {
+												$("li[id='" + items[i].id + "']").append('<ul id="' + items[i].id + '" class="nav nav-second-level collapse" aria-expanded="false" style="height: 0px;">');
+											}
+										}
+
+										if(items[i].level >= 1) {
+											html = '<li id="' + items[i].id + '"><a>' + items[i].name + '</span><span class="fa arrow"></span></a></li>';
+											$("ul[id='" + items[i].pId + "']").append(html);
+											if(items[i].isParent) {
+												$("li[id='" + items[i].id + "']").append('<ul id="' + items[i].id + '" class="nav nav-third-level collapse">');
+											}
+										}
+									} else {
+										html = '<li><a class="J_menuItem" href="' + items[i].url + '" data-index="' + data_index + '" >' + items[i].name + '</a></li>';
+										$("ul[id='" + items[i].pId + "']").append(html);
+										data_index++;
+									}
+								}
+							}
+
+							$("#side-menu").append('<li id="33" class=""><a><i class="fa fa-files-o"></i><span class="nav-label">测试管理</span><span class="fa arrow"></span></a><ul id="33" class="nav nav-second-level collapse" aria-expanded="false" style="height: 0px;"><li><a class="J_menuItem" href="/admin/see_tests_result" data-index="9">查看测试</a></li><li><a class="J_menuItem" href="/dispose_work" data-index="10">布置测试</a></li><li><a class="J_menuItem" href="/admin/test_group_manage" data-index="11">分组管理</a></li></ul></li>')
+
+							function e() {
+								var e = $("body > #wrapper").height() - 61;
+								$(".sidebard-panel").css("min-height", e + "px")
+							}
+							$("#side-menu").metisMenu(), $(".right-sidebar-toggle").click(function() {
+								$("#right-sidebar").toggleClass("sidebar-open")
+							}), $(".sidebar-container").slimScroll({
+								height: "100%",
+								railOpacity: .4,
+								wheelStep: 10
+							}), $(".open-small-chat").click(function() {
+								$(this).children().toggleClass("fa-comments").toggleClass("fa-remove"), $(".small-chat-box").toggleClass("active")
+							}), $(".small-chat-box .content").slimScroll({
+								height: "234px",
+								railOpacity: .4
+							}), $(".check-link").click(function() {
+								var e = $(this).find("i"),
+									a = $(this).next("span");
+								return e.toggleClass("fa-check-square").toggleClass("fa-square-o"), a.toggleClass("todo-completed"), !1
+							}), $(function() {
+								$(".sidebar-collapse").slimScroll({
+									height: "100%",
+									railOpacity: .9,
+									alwaysVisible: !1
+								})
+							}), e(), $(window).scroll(function() {
+								$(window).scrollTop() > 0 && !$("body").hasClass("fixed-nav") ? $("#right-sidebar").addClass("sidebar-top") : $("#right-sidebar").removeClass("sidebar-top")
+							}), $(".full-height-scroll").slimScroll({
+								height: "100%"
+							}), $("#side-menu>li").click(function() {
+								$("body").hasClass("mini-navbar") && NavToggle()
+							}), $("#side-menu>li li a").click(function() {
+								$(window).width() < 769 && NavToggle()
+							}), $(".nav-close").click(NavToggle), /(iPhone|iPad|iPod|iOS)/i.test(navigator.userAgent) && $("#content-main").css("overflow-y", "auto")
+
+							$(".J_menuItem").each(function(t) {
+								$(this).attr("data-index") || $(this).attr("data-index", t)
+							}), $(".J_menuItem").on("click", n), $(".J_menuTabs").on("click", ".J_menuTab i", s), $(".J_tabCloseOther").on("click", r), $(".J_tabShowActive").on("click", o), $(".J_menuTabs").on("click", ".J_menuTab", d), $(".J_menuTabs").on("dblclick", ".J_menuTab", c), $(".J_tabLeft").on("click", a), $(".J_tabRight").on("click", i), $(".J_tabCloseAll").on("click", function() {
+								$(".page-tabs-content").children("[data-id]").not(":first").each(function() {
+									$('.J_iframe[data-id="' + $(this).data("id") + '"]').remove(), $(this).remove()
+								}), $(".page-tabs-content").children("[data-id]:first").each(function() {
+									$('.J_iframe[data-id="' + $(this).data("id") + '"]').show(), $(this).addClass("active")
+								}), $(".page-tabs-content").css("margin-left", "0")
+							})
+
+						});
+
+				});
+
+			$(window).bind("load resize", function() {
+				$(this).width() < 769 && ($("body").addClass("mini-navbar"), $(".navbar-static-side").fadeIn())
+			});
+
+			$(function() {
+				if($("#fixednavbar").click(function() {
+						$("#fixednavbar").is(":checked") ? ($(".navbar-static-top").removeClass("navbar-static-top").addClass("navbar-fixed-top"), $("body").removeClass("boxed-layout"), $("body").addClass("fixed-nav"), $("#boxedlayout").prop("checked", !1), localStorageSupport && localStorage.setItem("boxedlayout", "off"), localStorageSupport && localStorage.setItem("fixednavbar", "on")) : ($(".navbar-fixed-top").removeClass("navbar-fixed-top").addClass("navbar-static-top"), $("body").removeClass("fixed-nav"), localStorageSupport && localStorage.setItem("fixednavbar", "off"))
+					}), $("#collapsemenu").click(function() {
+						$("#collapsemenu").is(":checked") ? ($("body").addClass("mini-navbar"), SmoothlyMenu(), localStorageSupport && localStorage.setItem("collapse_menu", "on")) : ($("body").removeClass("mini-navbar"), SmoothlyMenu(), localStorageSupport && localStorage.setItem("collapse_menu", "off"))
+					}), $("#boxedlayout").click(function() {
+						$("#boxedlayout").is(":checked") ? ($("body").addClass("boxed-layout"), $("#fixednavbar").prop("checked", !1), $(".navbar-fixed-top").removeClass("navbar-fixed-top").addClass("navbar-static-top"), $("body").removeClass("fixed-nav"), localStorageSupport && localStorage.setItem("fixednavbar", "off"), localStorageSupport && localStorage.setItem("boxedlayout", "on")) : ($("body").removeClass("boxed-layout"), localStorageSupport && localStorage.setItem("boxedlayout", "off"))
+					}), $(".s-skin-0").click(function() {
+						return $("body").removeClass("skin-1"), $("body").removeClass("skin-2"), $("body").removeClass("skin-3"), !1
+					}), $(".s-skin-1").click(function() {
+						return $("body").removeClass("skin-2"), $("body").removeClass("skin-3"), $("body").addClass("skin-1"), !1
+					}), $(".s-skin-3").click(function() {
+						return $("body").removeClass("skin-1"), $("body").removeClass("skin-2"), $("body").addClass("skin-3"), !1
+					}), localStorageSupport) {
+					var e = localStorage.getItem("collapse_menu"),
+						a = localStorage.getItem("fixednavbar"),
+						o = localStorage.getItem("boxedlayout");
+					"on" == e && $("#collapsemenu").prop("checked", "checked"), "on" == a && $("#fixednavbar").prop("checked", "checked"), "on" == o && $("#boxedlayout").prop("checked", "checked")
+				}
+				if(localStorageSupport) {
+					var e = localStorage.getItem("collapse_menu"),
+						a = localStorage.getItem("fixednavbar"),
+						o = localStorage.getItem("boxedlayout"),
+						l = $("body");
+					"on" == e && (l.hasClass("body-small") || l.addClass("mini-navbar")), "on" == a && ($(".navbar-static-top").removeClass("navbar-static-top").addClass("navbar-fixed-top"), l.addClass("fixed-nav")), "on" == o && l.addClass("boxed-layout")
+				}
+			});
+		</script>
+	</body>
+
+</html>
