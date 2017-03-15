@@ -1,13 +1,30 @@
 <% include ../header.html %>
 <link rel="stylesheet" href="css/plugins/ztree/zTreeStyle/zTreeStyle.css" />
-<div class="wrapper wrapper-content">
+<!-- <div class="wrapper wrapper-content">
   <div class="row" style="background-color: white;">
     <button id="btn_add" class="btn btn-primary"><i class="fa fa-plus"></i>&nbsp;添加分组</button>
     <div class="ibox-content">
       <table id="bstable" class="table-fixed"></table>
     </div>
   </div>
+</div> -->
+
+<div class="wrapper wrapper-content">
+    <div class="row" style="background-color: white;">
+      　<!--表格工具栏-->
+      　<div id="toolbar">
+      　    <form id="search_form" class="form-inline">
+      　        <button class="btn btn-primary" type="button" onclick="retrieve();"><i class="fa fa-refresh"></i>&nbsp;刷新</button>
+      　        <button id="btn_add" type="button" class="btn btn-primary"><i class="fa fa-plus"></i>&nbsp;新建分组</button>
+      　    </form>
+      　</div>
+        <div class="ibox float-e-margins">
+            <table id="bstable" class="table-fixed"></table>
+        </div>
+    </div>
 </div>
+
+
 
 <div id="app">
     <div id="add_group_edit" class="container" hidden="hidden">
@@ -16,14 +33,19 @@
                 <form class="form-horizontal">
                     <div v-show="step==1" class="step1">
                         <div id="ptype" class="col-md-11"></div>
-                        <div class="col-md-11">
                             <div class="form-group">
-                                <label class="col-md-2 control-label text-right">分组名称</label>
-                                <div class="col-md-10">
-                                    <input v-model="rule.rule_name" class="form-control" type="text">
+                                <div class="col-md-12">
+                                    <input v-model="rule.rule_name" class="form-control" type="text" placeholder="取个分组名称吧">
                                 </div>
                             </div>
-                        </div>
+                    </div>
+                    <div v-show="step==2" class="step1">
+                      <div class="col-md-12">
+                          <label class="col-md-12 control-label text-left">添加人员</label>
+                          <div class="col-md-12">
+                              <table id="grouptable" class="table-fixed"></table>
+                          </div>
+                      </div>
                     </div>
                 </from>
             </div>
@@ -38,14 +60,168 @@
 $(document).ready(function () {
    $("#btn_add").click(function() {
        Edit();
+       initMemberTable();
     })
+
+    initTable();
+
  })
+
+function retrieve() {
+    rule_id = null;
+    $('#bstable').bootstrapTable('refresh');
+}
+
+
+//自定义AJAX方法
+function ajaxRequest(params) {
+    offset = params.data.offset;
+    rule_id = null;
+    $.ajax({
+        type: "GET",
+        url: server_url + "/rule/getrulelist",
+        headers: {
+            token: sessionStorage.getItem('token')
+        },
+        data: params.data,
+        error: function (XMLHttpRequest, textStatus, errorThrown) {
+            _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+        },
+        success: function (ret) {
+            if (ret.errno == 0) {
+                params.success(ret.data);
+            } else {
+                if (ret.errno == 1001) {
+                    $.each(ret.errmsg, function (i, n) {
+                        _toastr(n, "bottom-right", "error", false);
+                    })
+                } else {
+                    _toastr(ret.errmsg, "bottom-right", "error", false);
+                }
+            }
+        }
+    });
+}
+
+//初始化表格
+function initTable() {
+    console.log("initTable");
+    $('#bstable').bootstrapTable({
+        ajax: ajaxRequest,
+        toolbar: "#toolbar",
+        pagination: true,
+        pageNumber: 1,
+        pageSize: 10,
+        pageList: [10, 20, 40],
+        sidePagination: 'server',
+        columns: [{
+            field: 'row_index',
+            title: '序号',
+            align: 'center',
+            width: 50,
+            formatter: function (value, row, index) {
+                return offset + index + 1;
+            }
+        }, {
+            field: 'rule_name',
+            title: '分组名称',
+            align: 'center',
+            halign: 'center'
+        }, {
+            field: 'quest_num',
+            title: '成员数量',
+            align: 'center',
+            width: 100
+        }, {
+            field: 'opr',
+            title: '操作',
+            align: 'center',
+            width: 100,
+            formatter: function (value, row, index) {
+                return '<a class="edit">修改</a>&nbsp;<a class="delete">删除</a>';
+            },
+            events: operateEvents
+        }]
+    }).on('click-row.bs.table', function (e, row, $element) {
+        $('.success').removeClass('success');
+        $($element).addClass('success');
+        rule_id = row.rule_id;
+    });
+}
+function initMemberTable() {
+  $('#grouptable').bootstrapTable({
+      ajax: ajaxRequest,
+      toolbar: "",
+      pagination: true,
+      pageNumber: 1,
+      pageSize: 10,
+      pageList: [10, 20, 40],
+      sidePagination: 'server',
+      columns: [{
+          field: 'row_index',
+          title: '序号',
+          align: 'center',
+          width: 50,
+          formatter: function (value, row, index) {
+              return offset + index + 1;
+          }
+      }, {
+          field: 'rule_name',
+          title: '分组名称',
+          align: 'center',
+          halign: 'center'
+      }, {
+          field: 'quest_num',
+          title: '成员数量',
+          align: 'center',
+          width: 100
+      }, {
+          field: 'opr',
+          title: '操作',
+          align: 'center',
+          width: 100,
+          formatter: function (value, row, index) {
+              return '<a class="edit">修改</a>&nbsp;<a class="delete">删除</a>';
+          },
+          events: operateEvents
+      }]
+  }).on('click-row.bs.table', function (e, row, $element) {
+      $('.success').removeClass('success');
+      $($element).addClass('success');
+      rule_id = row.rule_id;
+  });
+}
+//表格操作按钮点击事件处理
+window.operateEvents = {
+    'click .edit': function (e, value, row, index) {
+      console.log("点击表格");
+        // rule_id = row.rule_id;
+        // current_row = row;
+        // app.initRuleData(rule_id);
+//            Edit();
+    },
+    'click .delete': function (e, value, row, index) {
+        // var layer_index;
+        // layer_index = layer.confirm('您确定要删除当前数据吗？', {
+        //     btn: ['确定', '取消']
+        // }, function () {
+        //     _ajax_post("POST", server_url + "/rule/delrule", {
+        //                 rule_id: row.rule_id
+        //             },
+        //             retrieve);
+        //     layer.close(layer_index);
+        // }, function () {
+        //     layer.close(layer_index);
+        // });
+    }
+};
+
 
 //打开编辑界面
 function Edit() {
     layer_index = layer.open({
         type: 1,
-        title: "编辑组卷规则",
+        title: "新建分组",
         shadeClose: true,
         maxmin: true,
         area: ['100%', '100%'],
