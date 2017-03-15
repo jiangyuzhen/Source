@@ -1,13 +1,13 @@
 <% include ../header.html %>
 <link rel="stylesheet" href="css/plugins/ztree/zTreeStyle/zTreeStyle.css" />
-<!-- <div class="wrapper wrapper-content">
-  <div class="row" style="background-color: white;">
-    <button id="btn_add" class="btn btn-primary"><i class="fa fa-plus"></i>&nbsp;添加分组</button>
-    <div class="ibox-content">
-      <table id="bstable" class="table-fixed"></table>
-    </div>
-  </div>
-</div> -->
+<style>
+  .step1 .title {
+    text-align: center;
+    margin:15px auto;
+    font-size: 16px;
+  }
+
+</style>
 
 <div class="wrapper wrapper-content">
     <div class="row" style="background-color: white;">
@@ -32,18 +32,20 @@
             <div class="panel-body">
                 <form class="form-horizontal">
                     <div v-show="step==1" class="step1">
-                        <div id="ptype" class="col-md-11"></div>
-                            <div class="form-group">
-                                <div class="col-md-12">
-                                    <input v-model="rule.rule_name" class="form-control" type="text" placeholder="取个分组名称吧">
-                                </div>
+                        <div id="ptype" class="col-md-12"></div>
+                        <div class="col-md-12">
+                            <label class="col-md-12 control-label title">分组名称</label>
+                            <div class="col-md-12">
+                                <input v-model="rule.rule_name" class="form-control" style="text-align: center;" type="text" placeholder="给新建的分组，取个名称吧">
                             </div>
+                        </div>
                     </div>
                     <div v-show="step==2" class="step1">
                       <div class="col-md-12">
-                          <label class="col-md-12 control-label text-left">添加人员</label>
+                          <label class="col-md-12 control-label title">添加人员</label>
                           <div class="col-md-12">
                               <table id="grouptable" class="table-fixed"></table>
+                              <button id="btn_add" type="button" class="btn btn-primary"><i class="fa fa-check"></i>&nbsp;完成新建分组</button>
                           </div>
                       </div>
                     </div>
@@ -167,21 +169,40 @@ function initMemberTable() {
           }
       }, {
           field: 'rule_name',
-          title: '分组名称',
+          title: '考核对象',
           align: 'center',
           halign: 'center'
       }, {
           field: 'quest_num',
-          title: '成员数量',
+          title: '所在层级',
           align: 'center',
-          width: 100
+      }, {
+          field: 'quest_num',
+          title: '学籍号',
+          align: 'center',
+      }, {
+          field: 'quest_num',
+          title: '练习时间',
+          align: 'center',
+      }, {
+          field: 'quest_num',
+          title: '答题数',
+          align: 'center',
+      }, {
+          field: 'quest_num',
+          title: '正确率',
+          align: 'center',
+      }, {
+          field: 'quest_num',
+          title: '平均答题速度',
+          align: 'center',
       }, {
           field: 'opr',
           title: '操作',
           align: 'center',
           width: 100,
           formatter: function (value, row, index) {
-              return '<a class="edit">修改</a>&nbsp;<a class="delete">删除</a>';
+              return '<a class="add">加入学习小组</a>';
           },
           events: operateEvents
       }]
@@ -193,26 +214,12 @@ function initMemberTable() {
 }
 //表格操作按钮点击事件处理
 window.operateEvents = {
-    'click .edit': function (e, value, row, index) {
+    'click .add': function (e, value, row, index) {
       console.log("点击表格");
         // rule_id = row.rule_id;
         // current_row = row;
         // app.initRuleData(rule_id);
 //            Edit();
-    },
-    'click .delete': function (e, value, row, index) {
-        // var layer_index;
-        // layer_index = layer.confirm('您确定要删除当前数据吗？', {
-        //     btn: ['确定', '取消']
-        // }, function () {
-        //     _ajax_post("POST", server_url + "/rule/delrule", {
-        //                 rule_id: row.rule_id
-        //             },
-        //             retrieve);
-        //     layer.close(layer_index);
-        // }, function () {
-        //     layer.close(layer_index);
-        // });
     }
 };
 
