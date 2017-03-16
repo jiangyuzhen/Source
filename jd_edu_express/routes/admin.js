@@ -196,9 +196,11 @@ router.get('/live_broadcast_schedule_edit', function(req, res, next) {
 router.get('/test_group_manage', function(req, res) {
     res.render('./admin/teacher/test_group_manage', { title: '测试分组管理'});
 });
+
 router.get('/dispose_work', function(req, res) {
-    res.render('./admin/teacher/dispose_work', { title: '布置测试'});
+    res.render('./admin/dispose_works', { title: '布置测试'});
 });
+
 router.get('/see_tests_result', function(req, res) {
     res.render('./admin/teacher/see_tests_result', { title: '查看测试'});
 });
