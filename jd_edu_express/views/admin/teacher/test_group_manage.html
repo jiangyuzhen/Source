@@ -76,16 +76,18 @@ function retrieve() {
 
 
 //自定义AJAX方法
+console.log(teacher_server_url)
 function ajaxRequest(params) {
     offset = params.data.offset;
+    console.log(params);
     rule_id = null;
     $.ajax({
         type: "GET",
-        url: server_url + "/rule/getrulelist",
+        url: teacher_server_url + "/groupController/getMemberGroupList.do",
         headers: {
             token: sessionStorage.getItem('token')
         },
-        data: params.data,
+        data: {teacherid:"12"},
         error: function (XMLHttpRequest, textStatus, errorThrown) {
             _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
         },
