@@ -1,8 +1,12 @@
 <% include header.html %>
 <!-- <link rel="stylesheet" href="css/plugins/ztree/zTreeStyle/zTreeStyle.css" /> -->
 <link rel="stylesheet" href="css/plugins/steps/jquery.steps.css" />
-<link rel="stylesheet" href="css/plugins/iCheck/custom.css" />
+<link href="css/plugins/jqdatetimepicker/jquery.datetimepicker.css" rel="stylesheet">
+<!-- <link rel="stylesheet" href="css/plugins/iCheck/custom.css" /> -->
 <style>
+/*
+  选择分组
+*/
 #group_list {
     width: 100%;
 }
@@ -36,7 +40,6 @@
     width: 100%;
     height: 100%;
     background: rgba(0,0,0,0.3);
-    font-size: 60px;
     position: absolute;
     top: 0px;
     left: 0px;
@@ -44,6 +47,35 @@
     color: #217C03;
     /*display: none;*/
 }
+#check-click i {
+  font-size: 60px;
+}
+
+/*
+  命名
+*/
+#name-input {
+    text-align: center;
+    width: 60%;
+    margin: auto;
+    border-radius: 5px;
+    min-height: 60px;
+}
+#name-input:hover {
+    box-shadow: 3px 3px 5px rgba(0,0,0,0.3);
+}
+
+/*
+　时间设置
+*/
+#date-set {
+    line-height: 34px;
+}
+#btn_save_draft {
+    float: right;
+    margin-top: -10px;
+}
+
 </style>
 
 <div class="wrapper wrapper-content">
@@ -60,11 +92,9 @@
                     <i class="fa fa-check-circle-o"></i>
                   </div>
                 </div>
-             </div>
-             <div id="group_list">
                 <div class="group">
                   <div class="number"><i class="fa fa-users"></i>&nbsp;20人</div>
-                  <div class="title">默认测试组</div>
+                  <div class="title">2011级3班</div>
                 </div>
              </div>
 　　　    </fieldset>
@@ -72,7 +102,7 @@
 　　　    <h3><i class="fa fa-pencil-square-o"></i>&nbsp;给测试命名</h3>
 　　　    <fieldset>
 　　　        <legend>给测试命名</legend>
-　　　
+　　　        <input class="form-control" id="name-input" style="" type="text" placeholder="给新建的分组，取个名称吧">
 　　　        <!-- <label for="name-2">First name *</label>
 　　　        <input id="name-2" name="name" type="text" class="required">
 　　　        <label for="surname-2">Last name *</label>
@@ -90,21 +120,46 @@
 　　　    <fieldset>
 　　　        <legend>开始组卷</legend>
 　　　
-　　　        <p>Please go away ;-)</p>
+　　　        <p></p>
 　　　    </fieldset>
 　　　
 　　　    <h3><i class="fa fa-file-text"></i>&nbsp;试卷预览</h3>
 　　　    <fieldset>
 　　　        <legend>试卷预览</legend>
 　　　
-　　　        <input id="acceptTerms-2" name="acceptTerms" type="checkbox" class="required"> <label for="acceptTerms-2">I agree with the Terms and Conditions.</label>
+　　　
 　　　    </fieldset>
 
     　　　<h3><i class="fa fa-paper-plane"></i>&nbsp;发布试卷</h3>
 　　　    <fieldset>
-　　　        <legend>发布试卷</legend>
-　　　
-　　　        <p>Please go away ;-)</p>
+　　　       <legend>设置测试时间<button id="btn_save_draft" type="button" class="btn btn-warning"><i class="fa fa-plus"></i>&nbsp;存为草稿</button></legend>
+            <form class="form-horizontal">
+                <div class="row" id="date-set">
+                    <div class="col-md-12">
+                        <div class="form-group" id="data_1">
+                              <label class="col-sm-2 text-right">测试截止时间</label>
+                              <div class="col-sm-2">
+                                  <div class="input-group date">
+                                      <input id="datetimepicker" type="text" class="form-control" style="min-width: 160px;">
+                                      <span class="input-group-addon"><i class="fa fa-calendar"></i></span>
+                                  </div>
+                              </div>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="form-group">
+                              <label class="col-sm-2 text-right">设置测试时长</label>
+                              <div class="col-sm-2">
+                                  <div class="input-group date">
+                                      <input type="text" class="form-control" style="min-width: 160px;">
+                                      <span class="input-group-addon"><i class="fa fa-clock-o"></i></span>
+                                  </div>
+                              </div>
+                        </div>
+                    </div>
+                </div>
+              </div>
+            </form>
 　　　    </fieldset>
 　　　
 　　　</form>
@@ -114,7 +169,7 @@
 <% include footer.html %>
 
 <script type="text/javascript" src="js/plugins/steps/jquery.steps.min.js"></script>
-<script type="text/javascript" src="js/plugins/iCheck/icheck.min.js"></script>
+<script type="text/javascript" src="js/plugins/jqdatetimepick/jquery.datetimepicker.js"></script>
 <!-- <script type="text/javascript" src="js/teacher/jquery-labelauty.js"></script> -->
 <script>
 // 分步布置
@@ -126,61 +181,77 @@ form.steps({
     transitionEffect: "slideLeft",
     onStepChanging: function (event, currentIndex, newIndex)
     {
-        // Allways allow previous action even if the current form is not valid!
-        if (currentIndex > newIndex)
-        {
-            return true;
-        }
-        // Forbid next action on "Warning" step if the user is to young
-        if (newIndex === 4 && Number($("#age-2").val()) < 18)
-        {
-            return false;
-        }
-        // Needed in some cases if the user went back (clean up)
-        if (currentIndex < newIndex)
-        {
-            // To remove error styles
-            form.find(".body:eq(" + newIndex + ") label.error").remove();
-            form.find(".body:eq(" + newIndex + ") .error").removeClass("error");
-        }
-        form.validate().settings.ignore = ":disabled,:hidden";
-        return form.valid();
+      return true;
+        // // Allways allow previous action even if the current form is not valid!
+        // if (currentIndex > newIndex)
+        // {
+        //     return true;
+        // }
+        // // Forbid next action on "Warning" step if the user is to young
+        // if (newIndex === 4 && Number($("#age-2").val()) < 18)
+        // {
+        //     return false;
+        // }
+        // // Needed in some cases if the user went back (clean up)
+        // if (currentIndex < newIndex)
+        // {
+        //     // To remove error styles
+        //     form.find(".body:eq(" + newIndex + ") label.error").remove();
+        //     form.find(".body:eq(" + newIndex + ") .error").removeClass("error");
+        // }
+        // form.validate().settings.ignore = ":disabled,:hidden";
+        // return form.valid();
     },
     onStepChanged: function (event, currentIndex, priorIndex)
     {
         // Used to skip the "Warning" step if the user is old enough.
-        if (currentIndex === 2 && Number($("#age-2").val()) >= 18)
-        {
-            form.steps("next");
-        }
-        // Used to skip the "Warning" step if the user is old enough and wants to the previous step.
-        if (currentIndex === 2 && priorIndex === 3)
-        {
-            form.steps("previous");
-        }
+        // if (currentIndex === 2 && Number($("#age-2").val()) >= 18)
+        // {
+        //     form.steps("next");
+        // }
+        // // Used to skip the "Warning" step if the user is old enough and wants to the previous step.
+        // if (currentIndex === 2 && priorIndex === 3)
+        // {
+        //     form.steps("previous");
+        // }
     },
     onFinishing: function (event, currentIndex)
     {
-        form.validate().settings.ignore = ":disabled";
-        return form.valid();
+        // form.validate().settings.ignore = ":disabled";
+        // return form.valid();
     },
     onFinished: function (event, currentIndex)
     {
         alert("Submitted!");
     }
-}).validate({
-    errorPlacement: function errorPlacement(error, element) { element.before(error); },
-    rules: {
-        confirm: {
-            equalTo: "#password-2"
-        }
-    }
 });
 
 $(document).ready(function(){
-  $("#group_list .group").click(function(){
-    alert("dianjik");
+
+  $("#group_list .group").on('click', function(e){
+      $("#check-click").remove();
+      var check_html = '<div id="check-click"><i class="fa fa-check-circle-o"></i></div>';
+      $(e.target).append(check_html);
   });
+
+  // 日期选择js
+  var logic = function( currentDateTime ){
+      if( currentDateTime.getDay()==6 ){
+          this.setOptions({
+              minTime:'11:00'
+          });
+      }else
+          this.setOptions({
+              minTime:'8:00'
+          });
+  };
+  $('#datetimepicker').datetimepicker({
+      onChangeDateTime:logic,
+      onShow:logic,
+      lang:"ch",           //语言选择中文
+  });
+
+
 });
 
 </script>
