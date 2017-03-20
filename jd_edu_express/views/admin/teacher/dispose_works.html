@@ -77,22 +77,27 @@
                 <el-col :span="24">
                   <div class="black-content bg-purple-dark">
                       <h2 class="text-center">{{ paper_detail.paper_name }}</h2>
-                      <h5 class="text-center gray-content">测试时长: {{ paper_detail.duration }} Min</h5>
+                      <h5 class="text-center" style="margin-bottom:20px;">测试时长: {{ paper_detail.duration }} Min</h5>
                       <div id="paper-content">
-                        <el-card class="box-card">
+                        <el-card class="box-card"  v-for="(question,index) in questions">
                             <div slot="header" class="clearfix">
                               <span style="line-height: 36px;">考试真题</span>
-                              <el-button style="float: right;" type="primary">替换该题</el-button>
+                              <el-button style="float: right;" @click="changeTopic(question.question_id, question.question_knowledge_point_id, index)" type="primary" size="small">替换该题</el-button>
                             </div>
-                            <div class="question-panel" v-for="question in questions">
+                            <div class="question-panel" >
                                 <div class="question-detail">
-                                    {{ }}
+                                    {{ index + '. ' }}
+                                    <span v-html="question.question_detail">  {{ question.question_detail }} </span>
                                 </div>
                                 <div class="answer_list">
-
+                                    <p v-for="(answer, id) in question.answer_list">
+                                      <span v-html="switchLetter(id)"> {{switchLetter(id)}} </span>
+                                      <span v-html="answer.answer"> {{ switchLetter(id) + ' ' + answer.answer  }} </span>
+                                     </p>
                                 </div>
                                 <div class="question_analysis">
-
+                                    <el-tag type="warning">试题解析</el-tag>
+                                    <span v-html="question.question_analysis" style="padding-left: 10px;">  {{ question.question_analysis  }} </span>
                                 </div>
                             </div>
                         </el-card>
@@ -100,6 +105,31 @@
                   </div>
               </el-col>
             </el-row>
+        </div>
+        <div id="step4"  v-if="active == 4">
+          <el-form label-position="top" label-width="80px" :model="test_draft">
+              <el-form-item label="名称">
+                <el-input v-model="test_draft.testEndTime"></el-input>
+              </el-form-item>
+              <el-form-item label="活动区域">
+                <el-input v-model="formLabelAlign.region"></el-input>
+              </el-form-item>
+            </el-form>
+          <!-- <p>
+            <span>设置测试结束时间: </span>
+            <el-date-picker
+              v-model="test_draft.testEndTime"
+              type="datetime"
+              placeholder="选择测试结束时间">
+            </el-date-picker>
+            <el-switch
+              v-model="test_draft.endTimeStatus"
+              on-text=""
+              off-text="">
+            </el-switch>
+          </p> -->
+
+          <el-button style="margin-top: 12px;">村委</el-button>
         </div>
       </div>
       <div>
@@ -203,7 +233,7 @@ $(document).ready(function(){
 app = new Vue({
   el: '#app',
   data: {
-    active: 0,
+    active: 4,
     test_title: "",
     groupid: '',
     groupList:[],
@@ -213,10 +243,14 @@ app = new Vue({
     paper_list: [],
     paper_detail: {},
     paperid: '',
-    questions:[]
+    questions:[],
+    test_draft:{
+      testEndTime:''
+    }
   },
   methods: {
     next: function() {
+      // 下一步
       var msg = this.validationStep(this.active);
       if(!msg && this.active < 5){
         if(this.active == 1){this.getRuleList();}
@@ -224,13 +258,14 @@ app = new Vue({
       }else{
         _toastr(msg, "top-full-width", "error", false);
       }
-        // if (this.active++ > 4) this.active = 0;
-        // if(this.active == 2){
-        //   this.getRuleList();
-        // }
       },
     previou: function() {
+      // 上一步
       if (this.active　> 0){ this.active--; };
+    },
+    switchLetter: function(index) {
+      var letters = ['A', 'B', 'C', 'D'];
+      return letters[index];
     },
     getGrouoList: function() {
       // 获取分组列表
@@ -248,7 +283,7 @@ app = new Vue({
       });
     },
     getRuleList: function() {
-      // 获取分组列表
+      // 获取规则列表
       var _self = this;
       $.ajax({
           type: "POST",
@@ -267,9 +302,8 @@ app = new Vue({
       return '';
     },
     getPaperList:function() {
-      // 获取试卷
+      // 获取试卷各题序号
       var _self = this;
-      console.log("jinlail")
       $.ajax({
           type: "POST",
           url: teacher_server_url + "/definedPaperController/getPaperDetailByPaperId.do?",
@@ -278,17 +312,17 @@ app = new Vue({
               _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
           },
           success: function (obj) {
-
             var data = JSON.parse(obj);
             _self.paper_detail = data.data;
-            console.log(data.data.quests)
-            if(data.returnCode == 0){
-              var questids = [];
-              for(var i = 0, quest = data.data.quests[i];;i++){
-                questids.push(quest.quest_id);
+            console.log(data,"_self.paper_detail")
+            if(data.returnCode == 0 && data.data.quests.length){
+              var questids = data.data.quests[0].quest_id;
+              for(var i = 1;i < data.data.quests.length;i++){
+                var quest = data.data.quests[i]
+                questids += ','+quest.quest_id;
               }
+              console.log(questids);
               _self.getQuestList(questids);
-              console.log(_self.questions)
             }
           }
       });
@@ -298,8 +332,8 @@ app = new Vue({
       var _self = this;
       $.ajax({
           type: "POST",
-          url: teacher_server_url + "/definedPaperController/getQuestionDetail.do",
-          data:{questids: questids},
+          url: teacher_server_url + "/questDealController/getQuestionDetail.do",
+          data:{questIds: questids},
           error: function (XMLHttpRequest, textStatus, errorThrown) {
               _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
           },
@@ -313,8 +347,6 @@ app = new Vue({
             }
           }
       });
-
-
     },
     handleCurrentRuleId: function(val) {
       this.ruleid = val.rule_id;
@@ -354,6 +386,28 @@ app = new Vue({
               }
           }
       });
+    },
+    changeTopic: function(question_id, question_knowledge, index) {
+      // 换题
+        var kid  = question_knowledge.question_knowledge_point_id;
+        var _self = this;
+        $.ajax({
+            type: "POST",
+            url: teacher_server_url + "/definedPaperController/getOneQuestForPaper.do",
+            data: {question_id:question_id, kid:kid},
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+            },
+            success: function (obj) {
+                var data = JSON.parse(obj)
+                console.log(data);
+                // if(data.paperId){
+                //   // _self.getPaperList();
+                // }else{
+                //   _toastr("更换题目失败，请重试", "top-full-width", "error", false);
+                // }
+            }
+        });
     },
     validationStep: function(index) {
       // 下一步验证

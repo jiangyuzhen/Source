@@ -1,52 +1,3 @@
-/*
-  选择分组
-*/
-/*#group_list {
-    width: 100%;
-}
-#group_list .group {
-    width: 160px;
-    height: 160px;
-    border: solid 1px #1ab394;
-    text-align: center;
-    border-radius: 7px;
-    background: #fff;
-    font-size: 16px;
-    padding: 35px 0px;
-    color: #1ab394;
-    position: relative;
-    float: left;
-    margin: 0px 15px;
-    cursor: pointer;
-}
-#group_list .group .title {
-    color: #236759;
-}
-#group_list .group .number {
-  color: #E9841F;
-  margin-bottom: 10px;
-  overflow: hidden;
-}
-#group_list .group .number i{
-    font-size: 24px;
-    display: block;
-}
-#check-click {
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.3);
-    position: absolute;
-    top: 0px;
-    left: 0px;
-    line-height: 160px;
-    color: #217C03;
-    /*display: none;*/
-/*}
-#check-click i {
-  font-size: 60px;
-  line-height: 100%;
-}*/
-
 #step-content{
   border: solid 1px #dadada;
   padding: 15px;
@@ -68,6 +19,25 @@
     box-shadow: 3px 3px 5px rgba(0,0,0,0.3);
 }
 
+/*
+  试卷style
+*/
+.box-card {
+  margin: 10px auto;
+}
+.box-card:hover {
+  border: solid 1px #1ab394;
+}
+.question-panel .question-detail {
+  font-size: 18px;
+}
+.question-panel .answer_list {
+  font-size: 14px;
+  padding: 15px;
+}
+.question-panel .question_analysis {
+  font-size: 12px;
+}
 /*
 　时间设置
 */
