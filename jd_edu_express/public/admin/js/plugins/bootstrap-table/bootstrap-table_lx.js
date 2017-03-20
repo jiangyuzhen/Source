@@ -281,7 +281,7 @@
         this.$el_ = this.$el.clone();
         this.timeoutId_ = 0;
         this.timeoutFooter_ = 0;
-
+        console.log("aaa",el,options)
         this.init();
     };
 
@@ -2416,7 +2416,7 @@
         this.initSort();
         this.initBody(true);
     };
-    
+
     BootstrapTable.prototype.removeAll = function () {
         if (this.options.data.length > 0) {
             this.options.data.splice(0, this.options.data.length);

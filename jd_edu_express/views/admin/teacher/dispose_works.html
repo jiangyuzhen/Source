@@ -1,0 +1,251 @@
+<% include ../header.html %>
+<!-- <link rel="stylesheet" href="css/plugins/ztree/zTreeStyle/zTreeStyle.css" /> -->
+<link rel="stylesheet" href="css/plugins/steps/jquery.steps.css" />
+<link href="css/plugins/jqdatetimepicker/jquery.datetimepicker.css" rel="stylesheet">
+<link href="//cdn.bootcss.com/element-ui/1.2.4/theme-default/index.css" rel="stylesheet">
+<link rel="stylesheet" href="css/teacher/dispose_works.css" />
+
+<div class="wrapper wrapper-content">
+  <div class="row" id="app" style="background-color: white;padding: 15px;" >
+      <div id="steps-panel">
+        <el-steps :space="100" :active="active" finish-status="success">
+            <el-step title="选择分组"></el-step>
+            <el-step title="给测试命名"></el-step>
+            <el-step title="开始组卷"></el-step>
+            <el-step title="试卷预览"></el-step>
+            <el-step title="发布试卷"></el-step>
+        </el-steps>
+      </div>
+      <div id="step-content">
+        <div id="step0" v-if="active == 0">
+          <el-select v-model="groupid" placeholder="请选择目标分组">
+            <el-option
+                v-for="group in groupList"
+                :label="group.group_name"
+                :value="group.group_id"
+                >
+                <span style="float: left">{{ group.group_name }}</span>
+                <span style="float: right; color: #8492a6; font-size: 13px">{{ group.member_count }}人</span>
+              </el-option>
+            </el-select>
+        </div>
+        <div id="step1"  v-if="active == 1">
+          <input class="form-control" v-model="test_title" id="name-input" style="" type="text" placeholder="给新建的分组，取个名称吧">
+        </div>
+        <div id="step2"  v-if="active == 2">
+          <el-row>
+              <el-col :span="12" style="border-right: solid 1px #dedede;min-height: 370px;overflow-y: scroll;">
+                <div class="grid-content bg-purple">
+                  <el-table
+                      :data="rule_list"
+                      highlight-current-row
+                      @current-change="handleCurrentRuleId"
+                      style="width: 100%">
+                      <el-table-column
+                        prop="rule_name"
+                        label="请选择组卷规则">
+                      </el-table-column>
+                   </el-table>
+                </div>
+              </el-col>
+              <el-col :span="12" style="overflow-y: scroll;">
+                <div class="grid-content bg-purple-light">
+                  <el-table
+                      :data="paper_list"
+                      highlight-current-row
+                      @current-change="handleCurrentPaperId"
+                      style="width: 100%">
+                      <el-table-column
+                        prop="rule_name"
+                        label="请选择一套试卷">
+                      </el-table-column>
+                   </el-table>
+                </div>
+              </el-col>
+          </el-row>
+        </div>
+      </div>
+      <div>
+          <el-button style="margin-top: 12px;" @click="previou">上一步</el-button>
+          <el-button style="margin-top: 12px;" @click="next">下一步</el-button>
+      </div>
+
+　    <!-- <form id="example-advanced-form" action="#">
+　　　    <h3><i class="fa fa-users"></i>&nbsp;选择分组</h3>
+　　　
+　　　
+　　　    <h3><i class="fa fa-pencil-square-o"></i>&nbsp;给测试命名</h3>
+　　　    <fieldset>
+　　　        <legend>给测试命名</legend>
+　　　        <input class="form-control" v-model="test_title" id="name-input" style="" type="text" placeholder="给新建的分组，取个名称吧">
+　　　    </fieldset>
+　　　
+　　　    <h3><i class="fa fa-database"></i>&nbsp;开始组卷</h3>
+　　　    <fieldset>
+　　　        <legend>开始组卷</legend>
+　　　
+　　　        <p></p>
+　　　    </fieldset>
+　　　
+　　　    <h3><i class="fa fa-file-text"></i>&nbsp;试卷预览</h3>
+　　　    <fieldset>
+　　　        <legend>试卷预览</legend>
+　　　
+　　　
+　　　    </fieldset>
+
+    　　　<h3><i class="fa fa-paper-plane"></i>&nbsp;发布试卷</h3>
+　　　    <fieldset>
+　　　       <legend>设置测试时间<button id="btn_save_draft" type="button" class="btn btn-warning"><i class="fa fa-plus"></i>&nbsp;存为草稿</button></legend>
+            <form class="form-horizontal">
+                <div class="row" id="date-set">
+                    <div class="col-md-12">
+                        <div class="form-group" id="data_1">
+                              <label class="col-sm-2 text-right">测试截止时间</label>
+                              <div class="col-sm-2">
+                                  <div class="input-group date">
+                                      <input id="datetimepicker" type="text" class="form-control" style="min-width: 160px;">
+                                      <span class="input-group-addon"><i class="fa fa-calendar"></i></span>
+                                  </div>
+                              </div>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="form-group">
+                              <label class="col-sm-2 text-right">设置测试时长</label>
+                              <div class="col-sm-2">
+                                  <div class="input-group date">
+                                      <input type="text" class="form-control" style="min-width: 160px;">
+                                      <span class="input-group-addon"><i class="fa fa-clock-o"></i></span>
+                                  </div>
+                              </div>
+                        </div>
+                    </div>
+                </div>
+              </div>
+            </form>
+　　　    </fieldset>
+　　　
+　　　</form> -->
+  </div>
+</div>
+
+<% include ../footer.html %>
+
+<script type="text/javascript" src="js/plugins/steps/jquery.steps.min.js"></script>
+<script type="text/javascript" src="js/plugins/jqdatetimepick/jquery.datetimepicker.js"></script>
+<script src="//cdn.bootcss.com/vue/2.2.1/vue.min.js"></script>
+<script src="//cdn.bootcss.com/element-ui/1.2.4/index.js"></script>
+<!-- <script type="text/javascript" src="js/teacher/jquery-labelauty.js"></script> -->
+<script>
+
+$(document).ready(function(){
+
+  // $("#group_list .group").on('click', function(e){
+  //     console.log("aaa");
+  //     $("#check-click").remove();
+  //     var check_html = '<div id="check-click"><i class="fa fa-check-circle-o"></i></div>';
+  //     $(e.target).append(check_html);
+  // });
+
+  // 日期选择js
+  var logic = function( currentDateTime ){
+      if( currentDateTime.getDay()==6 ){
+          this.setOptions({
+              minTime:'11:00'
+          });
+      }else
+          this.setOptions({
+              minTime:'8:00'
+          });
+  };
+  $('#datetimepicker').datetimepicker({
+      onChangeDateTime:logic,
+      onShow:logic,
+      lang:"ch",           //语言选择中文
+  });
+
+  // 初始化数据
+ app.getGrouoList();
+ console.log(app.groupList)
+});
+
+app = new Vue({
+  el: '#app',
+  data: {
+    active: 0,
+    test_title: "",
+    groupid: '',
+    groupList:[],
+    ruleid: '',
+    rule_list: [],
+    paper_list: [],
+    paperid: ''
+  },
+  methods: {
+    next: function() {
+        if (this.active++ > 4) this.active = 0;
+        if(this.active == 2){
+          this.getRuleList();
+        }
+      },
+    previou: function() {
+      if (this.active-- < 1) this.active = 4;
+    },
+    getGrouoList: function() {
+      // 获取分组列表
+      var _self = this;
+      $.ajax({
+          type: "POST",
+          url: teacher_server_url + "/groupController/getMemberGroupList.do",
+          data: {teacherId:teacher_id},
+          error: function (XMLHttpRequest, textStatus, errorThrown) {
+              _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+          },
+          success: function (obj) {
+              _self.groupList = JSON.parse(obj).data;
+          }
+      });
+    },
+    getRuleList: function() {
+      // 获取分组列表
+      var _self = this;
+      $.ajax({
+          type: "POST",
+          url: teacher_server_url + "/ruleController/getRuleList.do",
+          error: function (XMLHttpRequest, textStatus, errorThrown) {
+              _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+          },
+          success: function (obj) {
+            console.log(obj);
+            _self.rule_list = JSON.parse(obj).data;
+          }
+      });
+    },
+    handleCurrentRuleId: function(val) {
+      this.ruleid = val.rule_id;
+      var _self = this;
+      $.ajax({
+          type: "POST",
+          url: teacher_server_url + "/ruleController/getRuleDetailByRuleId.do",
+          data: {ruleId:val.rule_id},
+          error: function (XMLHttpRequest, textStatus, errorThrown) {
+              _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+          },
+          success: function (obj) {
+              console.log(obj,'paper_list');
+              _self.paper_list = JSON.parse(obj).data;
+          }
+      });
+    },
+    handleCurrentPaperId: function(val) {
+      this.paperid = val.paperId;
+    }
+
+  }
+
+});
+
+
+
+</script>

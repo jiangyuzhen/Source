@@ -198,7 +198,7 @@ router.get('/test_group_manage', function(req, res) {
 });
 
 router.get('/dispose_work', function(req, res) {
-    res.render('./admin/dispose_works', { title: '布置测试'});
+    res.render('./admin/teacher/dispose_works', { title: '布置测试'});
 });
 
 router.get('/see_tests_result', function(req, res) {

@@ -5,6 +5,7 @@ var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var ueditor = require("ueditor");
+var proxy = require('express-http-proxy');
 
 var admin = require('./routes/admin');
 var upload = require('./routes/upload');
@@ -14,6 +15,12 @@ var app = express();
 app.set('views', path.join(__dirname, 'views'));
 app.engine('html', require('ejs').renderFile);
 app.set('view engine', 'html');
+app.use('/JDEdu/*', proxy("http://www.yunxue365.cn:8080/JDEdu", {
+  reqBodyEncoding: null,
+  forwardPath: function(req, res) {
+    return req.originalUrl;
+  }
+}));
 
 // uncomment after placing your favicon in /public
 app.use(logger('dev'));

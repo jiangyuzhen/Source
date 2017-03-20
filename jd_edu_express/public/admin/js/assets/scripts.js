@@ -2,8 +2,8 @@ var plugin_path = 'js/plugins/';
 var server_url = 'http://127.0.0.1:8361/webapi';
 //var server_url = 'http://192.5.0.137:8361/webapi';
 
-var teacher_server_url = "http://hezs.tunnel.qydev.com/JDEdu";
-var teacher_id = 12;
+var teacher_server_url = "/JDEdu";
+var teacher_id = 1;
 
 window.width = jQuery(window).width();
 
