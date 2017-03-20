@@ -50,24 +50,61 @@
               </el-col>
               <el-col :span="12" style="overflow-y: scroll;">
                 <div class="grid-content bg-purple-light">
+                  <!-- <el-card class="box-card">
+                    <div slot="header" class="clearfix">
+                      <span style="line-height: 36px;">规则详情</span>
+                      <el-button style="float: right;" type="primary">确认选择</el-button>
+                    </div>
+                    <div v-for="o in paper_list" class="text item">
+                       详情
+                    </div>
+                  </el-card> -->
                   <el-table
                       :data="paper_list"
                       highlight-current-row
-                      @current-change="handleCurrentPaperId"
                       style="width: 100%">
                       <el-table-column
                         prop="rule_name"
-                        label="请选择一套试卷">
+                        label="规则详情">
                       </el-table-column>
                    </el-table>
                 </div>
               </el-col>
           </el-row>
         </div>
+        <div id="step3"  v-if="active == 3">
+            <el-row>
+                <el-col :span="24">
+                  <div class="black-content bg-purple-dark">
+                      <h2 class="text-center">{{ paper_detail.paper_name }}</h2>
+                      <h5 class="text-center gray-content">测试时长: {{ paper_detail.duration }} Min</h5>
+                      <div id="paper-content">
+                        <el-card class="box-card">
+                            <div slot="header" class="clearfix">
+                              <span style="line-height: 36px;">考试真题</span>
+                              <el-button style="float: right;" type="primary">替换该题</el-button>
+                            </div>
+                            <div class="question-panel" v-for="question in questions">
+                                <div class="question-detail">
+                                    {{ }}
+                                </div>
+                                <div class="answer_list">
+
+                                </div>
+                                <div class="question_analysis">
+
+                                </div>
+                            </div>
+                        </el-card>
+                      </div>
+                  </div>
+              </el-col>
+            </el-row>
+        </div>
       </div>
       <div>
-          <el-button style="margin-top: 12px;" @click="previou">上一步</el-button>
-          <el-button style="margin-top: 12px;" @click="next">下一步</el-button>
+          <el-button style="margin-top: 12px;" :disabled="active == 0" @click="previou">上一步</el-button>
+          <el-button style="margin-top: 12px;" :disabled="active == 4" @click="next">下一步</el-button>
       </div>
 
 　    <!-- <form id="example-advanced-form" action="#">
@@ -141,13 +178,6 @@
 
 $(document).ready(function(){
 
-  // $("#group_list .group").on('click', function(e){
-  //     console.log("aaa");
-  //     $("#check-click").remove();
-  //     var check_html = '<div id="check-click"><i class="fa fa-check-circle-o"></i></div>';
-  //     $(e.target).append(check_html);
-  // });
-
   // 日期选择js
   var logic = function( currentDateTime ){
       if( currentDateTime.getDay()==6 ){
@@ -179,18 +209,28 @@ app = new Vue({
     groupList:[],
     ruleid: '',
     rule_list: [],
+    rule_detail: {},
     paper_list: [],
-    paperid: ''
+    paper_detail: {},
+    paperid: '',
+    questions:[]
   },
   methods: {
     next: function() {
-        if (this.active++ > 4) this.active = 0;
-        if(this.active == 2){
-          this.getRuleList();
-        }
+      var msg = this.validationStep(this.active);
+      if(!msg && this.active < 5){
+        if(this.active == 1){this.getRuleList();}
+        this.active++;
+      }else{
+        _toastr(msg, "top-full-width", "error", false);
+      }
+        // if (this.active++ > 4) this.active = 0;
+        // if(this.active == 2){
+        //   this.getRuleList();
+        // }
       },
     previou: function() {
-      if (this.active-- < 1) this.active = 4;
+      if (this.active　> 0){ this.active--; };
     },
     getGrouoList: function() {
       // 获取分组列表
@@ -217,10 +257,64 @@ app = new Vue({
               _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
           },
           success: function (obj) {
-            console.log(obj);
-            _self.rule_list = JSON.parse(obj).data;
+            var data = JSON.parse(obj);
+            _self.rule_list = data.data;
+            if(data.returnCode != 0){
+              _toastr(data.returnMsg, "top-full-width", "error", false);
+            }
           }
       });
+      return '';
+    },
+    getPaperList:function() {
+      // 获取试卷
+      var _self = this;
+      console.log("jinlail")
+      $.ajax({
+          type: "POST",
+          url: teacher_server_url + "/definedPaperController/getPaperDetailByPaperId.do?",
+          data: {paperId: this.paperid},
+          error: function (XMLHttpRequest, textStatus, errorThrown) {
+              _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+          },
+          success: function (obj) {
+
+            var data = JSON.parse(obj);
+            _self.paper_detail = data.data;
+            console.log(data.data.quests)
+            if(data.returnCode == 0){
+              var questids = [];
+              for(var i = 0, quest = data.data.quests[i];;i++){
+                questids.push(quest.quest_id);
+              }
+              _self.getQuestList(questids);
+              console.log(_self.questions)
+            }
+          }
+      });
+      return '';
+    },
+    getQuestList:function(questids) {
+      var _self = this;
+      $.ajax({
+          type: "POST",
+          url: teacher_server_url + "/definedPaperController/getQuestionDetail.do",
+          data:{questids: questids},
+          error: function (XMLHttpRequest, textStatus, errorThrown) {
+              _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+          },
+          success: function (obj) {
+            var data = JSON.parse(obj);
+            if(data.returnCode == 0){
+               _self.questions = data.data;
+               console.log(data.data);
+            }else{
+              _toastr(data.returnMsg, "top-full-width", "error", false);
+            }
+          }
+      });
+
+
     },
     handleCurrentRuleId: function(val) {
       this.ruleid = val.rule_id;
@@ -233,13 +327,49 @@ app = new Vue({
               _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
           },
           success: function (obj) {
-              console.log(obj,'paper_list');
-              _self.paper_list = JSON.parse(obj).data;
+              var data = JSON.parse(obj)
+              _self.rule_detail = data.data;
+              if(data.returnCode != 0){
+                _toastr(data.returnMsg, "top-full-width", "error", false);
+              }
           }
       });
     },
-    handleCurrentPaperId: function(val) {
-      this.paperid = val.paperId;
+    handleCurrentPaperId: function() {
+      var _self = this;
+      $.ajax({
+          type: "POST",
+          url: teacher_server_url + "/definedPaperController/getPaperIdByRuleId.do",
+          data: {ruleId:this.ruleid},
+          error: function (XMLHttpRequest, textStatus, errorThrown) {
+              _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+          },
+          success: function (obj) {
+              var data = JSON.parse(obj)
+              _self.paperid = data.paperId;
+              if(data.paperId){
+                _self.getPaperList();
+              }else{
+                _toastr("获取试卷失败，请重试", "top-full-width", "error", false);
+              }
+          }
+      });
+    },
+    validationStep: function(index) {
+      // 下一步验证
+      switch (index) {
+        case 0:
+            return this.groupid ? '' : "请选择分组";
+          break;
+        case 1:
+            return this.test_title ? this.getRuleList() : "请填写测试名";
+          break;
+        case 2:
+            return this.ruleid ? this.handleCurrentPaperId() : "请选择一个组卷规则";
+          break;
+        default:
+            return false;
+      }
     }
 
   }
