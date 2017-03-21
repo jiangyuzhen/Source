@@ -1,7 +1,7 @@
 <% include ../header.html %>
 <!-- <link rel="stylesheet" href="css/plugins/ztree/zTreeStyle/zTreeStyle.css" /> -->
-<link rel="stylesheet" href="css/plugins/steps/jquery.steps.css" />
-<link href="css/plugins/jqdatetimepicker/jquery.datetimepicker.css" rel="stylesheet">
+<!-- <link rel="stylesheet" href="css/plugins/steps/jquery.steps.css" /> -->
+<!-- <link href="css/plugins/jqdatetimepicker/jquery.datetimepicker.css" rel="stylesheet"> -->
 <link href="//cdn.bootcss.com/element-ui/1.2.4/theme-default/index.css" rel="stylesheet">
 <link rel="stylesheet" href="css/teacher/dispose_works.css" />
 
@@ -145,8 +145,8 @@
                 <el-input v-model="test_draft.region"></el-input>
               </el-form-item>
               <el-form-item>
-                <el-button style="margin-top: 12px;"　type="warning"><i class="fa fa-file-text-o" aria-hidden="true"></i> 存为草稿</el-button>
-                <el-button style="margin-top: 12px;"　type="success"><i class="fa fa-paper-plane" aria-hidden="true"></i> 发布测试</el-button>
+                <el-button style="margin-top: 12px;" @click="saveUpdatePaper()"　type="warning"><i class="fa fa-file-text-o" aria-hidden="true"></i> 存为草稿</el-button>
+                <el-button style="margin-top: 12px;" @click="releasePaper()"　type="success"><i class="fa fa-paper-plane" aria-hidden="true"></i> 发布测试</el-button>
   　　　　　　　</el-form-item>
             </el-form>
           <!-- <p>
@@ -173,35 +173,16 @@
 
 <% include ../footer.html %>
 
-<script type="text/javascript" src="js/plugins/steps/jquery.steps.min.js"></script>
-<script type="text/javascript" src="js/plugins/jqdatetimepick/jquery.datetimepicker.js"></script>
+<!-- <script type="text/javascript" src="js/plugins/steps/jquery.steps.min.js"></script> -->
+<!-- <script type="text/javascript" src="js/plugins/jqdatetimepick/jquery.datetimepicker.js"></script> -->
 <script src="//cdn.bootcss.com/vue/2.2.1/vue.min.js"></script>
 <script src="//cdn.bootcss.com/element-ui/1.2.4/index.js"></script>
 <!-- <script type="text/javascript" src="js/teacher/jquery-labelauty.js"></script> -->
 <script>
 
 $(document).ready(function(){
-
-  // 日期选择js
-  var logic = function( currentDateTime ){
-      if( currentDateTime.getDay()==6 ){
-          this.setOptions({
-              minTime:'11:00'
-          });
-      }else
-          this.setOptions({
-              minTime:'8:00'
-          });
-  };
-  $('#datetimepicker').datetimepicker({
-      onChangeDateTime:logic,
-      onShow:logic,
-      lang:"ch",           //语言选择中文
-  });
-
   // 初始化数据
- app.getGrouoList();
- console.log(app.groupList)
+  app.getGrouoList();
 });
 
 app = new Vue({
@@ -255,7 +236,11 @@ app = new Vue({
               _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
           },
           success: function (obj) {
-              _self.groupList = JSON.parse(obj).data;
+            var data = JSON.parse(obj);
+              _self.groupList = data.data;
+              if(data.returnCode != 0){
+                _toastr(data.returnMsg, "top-full-width", "error", false);
+              }
           }
       });
     },
@@ -395,7 +380,7 @@ app = new Vue({
         });
     },
     saveUpdatePaper:function(){
-      // 保存草稿
+      // 保存更新
       var params = {
         paperId: this.paperId,
         questNum: this.paper_detail.quest_num,
@@ -405,27 +390,27 @@ app = new Vue({
       }
       $.ajax({
           type: "POST",
-          url: teacher_server_url + "testExerciseController/saveTestDraft.do",
+          url: teacher_server_url + "/definedPaperController/updatePaperDetail.do",
           data: params,
           error: function (XMLHttpRequest, textStatus, errorThrown) {
               _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
           },
           success: function (obj) {
               var data = JSON.parse(obj);
-              console.log("caogao",data);
               if(data.returnCode == 0){
-                 _toastr("存为草稿成功", "top-full-width", "success", false);
+                 _toastr("保存更新成功", "top-full-width", "success", false);
               }else{
-                 _toastr("存为草稿失败，请重试", "top-full-width", "error", false);
+                 _toastr("保存更新失败，请重试", "top-full-width", "error", false);
               }
           }
       });
+      return '';
     },
     releasePaper: function() {
       // 发布测试
       $.ajax({
           type: "POST",
-          url: teacher_server_url + "testExerciseController/saveTestDraft.do",
+          url: teacher_server_url + "/testExerciseController/setTestFormal.do",
           data: {teacherId:teacher_id,testId:this.testId},
           error: function (XMLHttpRequest, textStatus, errorThrown) {
               _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
@@ -453,6 +438,23 @@ app = new Vue({
         testRemark: this.test_draft.region,
         testEndTime: this.test_draft.testEndTime
       }
+      $.ajax({
+          type: "POST",
+          url: teacher_server_url + "/testExerciseController/saveTestDraft.do",
+          data: params,
+          error: function (XMLHttpRequest, textStatus, errorThrown) {
+              _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+          },
+          success: function (obj) {
+              var data = JSON.parse(obj);
+              console.log("caogao",data);
+              if(data.returnCode == 0){
+                 _toastr("存为草稿成功", "top-full-width", "success", false);
+              }else{
+                 _toastr("存为草稿失败，请重试", "top-full-width", "error", false);
+              }
+          }
+      });
     },
     validationStep: function(index) {
       // 下一步验证
@@ -465,6 +467,9 @@ app = new Vue({
           break;
         case 2:
             return this.ruleid ? this.handleCurrentPaperId() : "请选择一个组卷规则";
+          break;
+        case 3:
+            this.saveUpdatePaper();
           break;
         default:
             return false;

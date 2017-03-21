@@ -1,5 +1,5 @@
 <% include ../header.html %>
-<link rel="stylesheet" href="css/plugins/ztree/zTreeStyle/zTreeStyle.css" />
+<link href="//cdn.bootcss.com/element-ui/1.2.4/theme-default/index.css" rel="stylesheet">
 <style>
   .step1 .title {
     text-align: center;
@@ -9,17 +9,43 @@
 
 </style>
 
-<div class="wrapper wrapper-content">
-    <div class="row" style="background-color: white;">
+<div id="group" class="wrapper wrapper-content">
+    <div class="row" style="background-color: white;padding:15px;">
       　<!--表格工具栏-->
       　<div id="toolbar">
-      　    <form id="search_form" class="form-inline">
-      　        <button class="btn btn-primary" type="button" onclick="retrieve();"><i class="fa fa-refresh"></i>&nbsp;刷新</button>
+      　        <button class="btn btn-primary" type="button" onclick="getGrouoList()"><i class="fa fa-refresh"></i>&nbsp;刷新</button>
       　        <button id="btn_add" type="button" class="btn btn-primary"><i class="fa fa-plus"></i>&nbsp;新建分组</button>
       　    </form>
       　</div>
-        <div class="ibox float-e-margins">
-            <table id="bstable" class="table-fixed"></table>
+        <div class="ibox float-e-margins" style="margin-top:15px;">
+          <el-table
+            :data="groupList"
+            border
+            style="width: 100%"
+            @selection-change="handleSelectionChange">
+            <el-table-column
+              type="index"
+              width="50">
+            </el-table-column>
+            <el-table-column
+              prop="group_name"
+              label="分组名"
+              >
+            </el-table-column>
+            <el-table-column
+              prop="member_count"
+              label="分组人数"
+            >
+            </el-table-column>
+            <el-table-column
+              label="操作"
+              width="100">
+              <template scope="scope">
+                <el-button type="text" size="small">详情</el-button>
+                <el-button @click="deleteGroup()" type="text" size="small">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
         </div>
     </div>
 </div>
@@ -31,20 +57,70 @@
         <div class="panel panel-primary">
             <div class="panel-body">
                 <form class="form-horizontal">
-                    <div v-show="step==1" class="step1">
+                    <div class="step1">
                         <div id="ptype" class="col-md-12"></div>
                         <div class="col-md-12">
                             <label class="col-md-12 control-label title">分组名称</label>
                             <div class="col-md-12">
-                                <input v-model="rule.rule_name" class="form-control" style="text-align: center;" type="text" placeholder="给新建的分组，取个名称吧">
+                                <input class="form-control" style="text-align: center;" type="text" placeholder="给新建的分组，取个名称吧">
                             </div>
                         </div>
                     </div>
-                    <div v-show="step==2" class="step1">
+                    <div class="step1">
                       <div class="col-md-12">
                           <label class="col-md-12 control-label title">添加人员</label>
                           <div class="col-md-12">
-                              <table id="grouptable" class="table-fixed"></table>
+                              <div>
+                                <el-table
+                                  :data="studentList"
+                                  border
+                                  style="width: 100%"
+                                  @selection-change="handleSelectionChange">
+                                  <el-table-column
+                                    type="index"
+                                    width="50">
+                                  </el-table-column>
+                                  <el-table-column
+                                    prop="studentCode"
+                                    label="学籍号">
+                                  </el-table-column>
+                                  <el-table-column
+                                    prop="memberName"
+                                    label="学生姓名">
+                                  </el-table-column>
+                                  <el-table-column
+                                    prop="className"
+                                    label="班级名称">
+                                  </el-table-column>
+                                  <el-table-column
+                                    prop="classType"
+                                    label="班级类型">
+                                  </el-table-column>
+                                  <el-table-column
+                                    prop="exciserNum"
+                                    label="答题数">
+                                  </el-table-column>
+                                  <el-table-column
+                                    prop="exciserTime"
+                                    label="练习时长">
+                                  </el-table-column>
+                                  <el-table-column
+                                    prop="rightRate"
+                                    label="正确率">
+                                  </el-table-column>
+                                  <el-table-column
+                                    prop="exciserAvg"
+                                    label="平均答题时间">
+                                  </el-table-column>
+                                  <el-table-column
+                                    label="操作"
+                                    width="100">
+                                    <template scope="scope">
+                                      <el-button @click="addStudent()" type="text" size="small">加入学习小组</el-button>
+                                    </template>
+                                  </el-table-column>
+                                </el-table>
+                              </div>
                               <button id="btn_add" type="button" class="btn btn-primary"><i class="fa fa-check"></i>&nbsp;完成新建分组</button>
                           </div>
                       </div>
@@ -56,200 +132,18 @@
 </div>
 
 <% include ../footer.html %>
+<script src="//cdn.bootcss.com/vue/2.2.1/vue.min.js"></script>
+<script src="//cdn.bootcss.com/element-ui/1.2.4/index.js"></script>
 
 <script>
 
 $(document).ready(function () {
    $("#btn_add").click(function() {
        Edit();
-       initMemberTable();
+       app.getStudentList();
     })
-
-    initTable();
-
+    group.getGrouoList();
  })
-
-function retrieve() {
-    rule_id = null;
-    $('#bstable').bootstrapTable('refresh');
-}
-
-
-//自定义AJAX方法
-function ajaxRequest(params) {
-    offset = params.data.offset;
-    $.ajax({
-        type: "POST",
-        url: teacher_server_url + "/groupController/getMemberGroupList.do",
-        data: {teacherId:teacher_id},
-        error: function (XMLHttpRequest, textStatus, errorThrown) {
-            _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
-        },
-        success: function (data) {
-            ret = JSON.parse(data)
-            console.log(ret.returnCode);
-            if (ret.returnCode == 0) {
-                params.success(ret.data);
-                console.log("success",ret.data)
-            } else {
-                if (ret.returnCode == 1001) {
-                    $.each(ret.errmsg, function (i, n) {
-                        _toastr(n, "bottom-right", "error", false);
-                    })
-                } else {
-                    _toastr(ret.errmsg, "bottom-right", "error", false);
-                }
-            }
-        }
-    });
-}
-
-//初始化表格
-function initTable() {
-    $('#bstable').bootstrapTable({
-        ajax: ajaxRequest,
-        toolbar: "#toolbar",
-        pagination: true,
-        pageNumber: 1,
-        pageSize: 10,
-        pageList: [10, 20, 40],
-        sidePagination: 'server',
-        columns: [{
-            field: 'row_index',
-            title: '序号',
-            align: 'center',
-            width: 50,
-            formatter: function (value, row, index) {
-                return offset + index + 1;
-            }
-        }, {
-            field: 'group_name',
-            title: '分组名称',
-            align: 'center',
-            halign: 'center'
-        }, {
-            field: 'member_count',
-            title: '成员数量',
-            align: 'center',
-            width: 100
-        }, {
-            field: 'opr',
-            title: '操作',
-            align: 'center',
-            width: 100,
-            formatter: function (value, row, index) {
-                return '<a class="edit">修改</a>&nbsp;<a class="delete">删除</a>';
-            },
-            events: operateEvents
-        }]
-    }).on('click-row.bs.table', function (e, row, $element) {
-        $('.success').removeClass('success');
-        $($element).addClass('success');
-    });
-}
-
-function memberTable(params) {
-    offset = params.data.offset;
-    rule_id = null;
-    $.ajax({
-        type: "POST",
-        url: teacher_server_url + "/rule/getrulelist",
-        data: {teacherId:teacher_id},
-        headers: {
-            token: sessionStorage.getItem('token')
-        },
-        error: function (XMLHttpRequest, textStatus, errorThrown) {
-            _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
-        },
-        success: function (ret) {
-          console.log(ret);
-            if (ret.errno == 0) {
-                params.success(ret.data);
-            } else {
-                if (ret.errno == 1001) {
-                    $.each(ret.errmsg, function (i, n) {
-                        _toastr(n, "bottom-right", "error", false);
-                    })
-                } else {
-                    _toastr(ret.errmsg, "bottom-right", "error", false);
-                }
-            }
-        }
-    });
-}
-function initMemberTable() {
-  $('#grouptable').bootstrapTable({
-      ajax: memberTable,
-      toolbar: "",
-      pagination: true,
-      pageNumber: 1,
-      pageSize: 10,
-      pageList: [10, 20, 40],
-      sidePagination: 'server',
-      columns: [{
-          field: 'row_index',
-          title: '序号',
-          align: 'center',
-          width: 50,
-          formatter: function (value, row, index) {
-              return offset + index + 1;
-          }
-      }, {
-          field: 'rule_name',
-          title: '考核对象',
-          align: 'center',
-          halign: 'center'
-      }, {
-          field: 'quest_num',
-          title: '所在层级',
-          align: 'center',
-      }, {
-          field: 'quest_num',
-          title: '学籍号',
-          align: 'center',
-      }, {
-          field: 'quest_num',
-          title: '练习时间',
-          align: 'center',
-      }, {
-          field: 'quest_num',
-          title: '答题数',
-          align: 'center',
-      }, {
-          field: 'quest_num',
-          title: '正确率',
-          align: 'center',
-      }, {
-          field: 'quest_num',
-          title: '平均答题速度',
-          align: 'center',
-      }, {
-          field: 'opr',
-          title: '操作',
-          align: 'center',
-          width: 100,
-          formatter: function (value, row, index) {
-              return '<a class="add">加入学习小组</a>';
-          },
-          events: operateEvents
-      }]
-  }).on('click-row.bs.table', function (e, row, $element) {
-      $('.success').removeClass('success');
-      $($element).addClass('success');
-      rule_id = row.rule_id;
-  });
-}
-//表格操作按钮点击事件处理
-window.operateEvents = {
-    'click .add': function (e, value, row, index) {
-      console.log("点击表格");
-        // rule_id = row.rule_id;
-        // current_row = row;
-        // app.initRuleData(rule_id);
-//            Edit();WW
-    }
-};
-
 
 //打开编辑界面
 function Edit() {
@@ -263,4 +157,67 @@ function Edit() {
     });
 }
 
+var group = new Vue({
+  el: '#group',
+  data: {
+    groupList: [],
+    multipleSelection: []
+  },
+  methods: {
+      handleSelectionChange:function(val) {
+        this.multipleSelection = val;
+      },
+      getGrouoList: function() {
+        var _self = this;
+        $.ajax({
+            type: "POST",
+            url: teacher_server_url + "/groupController/getMemberGroupList.do",
+            data: {teacherId:teacher_id},
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+            },
+            success: function (obj) {
+              var data = JSON.parse(obj);
+                _self.groupList = data.data;
+                if(data.returnCode != 0){
+                  _toastr(data.returnMsg, "top-full-width", "error", false);
+                }
+            }
+        });
+      },
+      deleteGroup:function() {
+          console.log("shangchu fenzhu ");
+      }
+  }
+})
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    studentList: []
+  },
+  methods: {
+    getStudentList:function() {
+      var _self = this;
+      $.ajax({
+          type: "POST",
+          url: teacher_server_url + "/groupController/getMembersForTest.do",
+          data: {teacherId:teacher_id},
+          error: function (XMLHttpRequest, textStatus, errorThrown) {
+              _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+          },
+          success: function (obj) {
+            var data = JSON.parse(obj);
+              _self.studentList = data.data;
+              if(data.returnCode != 0){
+                _toastr(data.returnMsg, "top-full-width", "error", false);
+              }
+          }
+      });
+    },
+    addStudent:function() {
+
+    }
+  }
+})
 </script>

@@ -1,0 +1,33 @@
+<% include ../header.html %>
+<link href="//cdn.bootcss.com/element-ui/1.2.4/theme-default/index.css" rel="stylesheet">
+<link rel="stylesheet" href="css/teacher/dispose_works.css" />
+
+<div class="wrapper wrapper-content">
+  <div class="row" id="app" style="background-color: white;padding: 15px;" >
+
+  </div>
+</div>
+
+<% include ../footer.html %>
+<script src="//cdn.bootcss.com/vue/2.2.1/vue.min.js"></script>
+<script src="//cdn.bootcss.com/element-ui/1.2.4/index.js"></script>
+<script>
+
+$(document).ready(function(){
+  // 初始化数据
+  app.getGrouoList();
+});
+
+app = new Vue({
+  el: '#app',
+  data: {
+
+  },
+  methods:{
+
+  }
+});
+
+
+
+</script>
