@@ -20,12 +20,79 @@
 }
 
 /*
+  规则详情
+*/
+#rule-detail {
+  border:solid 1px #dfe6ec;
+}
+#rule-detail .title{
+    overflow: hidden;
+    background-color: #eef1f6;
+    text-align: left;
+    height: 40px;
+    min-width: 0;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+    border-bottom: 1px solid #dfe6ec;
+}
+#rule-detail .title .cell {
+    padding-left: 18px;
+    padding-right: 18px;
+    font-weight: bold;
+    word-wrap: normal;
+    text-overflow: ellipsis;
+    line-height: 40px;
+    width: 100%;
+    box-sizing: border-box;
+    position: relative;
+    display: inline-block;
+    vertical-align: middle;
+    white-space: normal;
+    word-break: break-all;
+    color: #1f2d3d;
+    background-color: #eef1f6;
+}
+#rule-detail .rule-content {
+  padding: 15px;
+}
+#rule-detail .rule-total-info{
+  color: #1ab394;
+}
+#rule-detail .rule-total-info span{
+  color: #F1BE36;
+}
+#rule-detail .rule-group {
+  border: solid 1px #eaeaea;
+  border-radius: 4px;
+  margin: 15px 0px;
+  padding: 15px;
+}
+#rule-detail .rule-group .grid-content {
+  padding-bottom: 10px;
+}
+#rule-detail .rule-group .knowlege {
+  border-top:solid 1px #eaeaea;
+  padding-top: 10px;
+}
+/*#rule-detail .text {
+    font-size: 14px;
+ }
+
+#rule-detail  .item {
+    padding: 18px 0;
+  }
+
+#rule-detail  .box-card {
+    width: 480px;
+  }*/
+
+/*
   试卷style
 */
-.box-card {
-  margin: 10px auto;
+#paper-content .box-card {
+  margin: 15px auto;
 }
-.box-card:hover {
+#paper-content .box-card:hover {
   border: solid 1px #1ab394;
 }
 .question-panel .question-detail {
@@ -38,13 +105,17 @@
 .question-panel .question_analysis {
   font-size: 12px;
 }
+
+/*
+  baocu
+*/
+#save-update-paper{
+
+}
+
 /*
 　时间设置
 */
-#date-set {
-    line-height: 34px;
-}
-#btn_save_draft {
-    float: right;
-    margin-top: -10px;
+.el-date-editor.el-input {
+  width: 100%;
 }

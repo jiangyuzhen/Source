@@ -30,7 +30,12 @@
             </el-select>
         </div>
         <div id="step1"  v-if="active == 1">
-          <input class="form-control" v-model="test_title" id="name-input" style="" type="text" placeholder="给新建的分组，取个名称吧">
+          <el-form label-position="top" label-width="80px">
+              <el-form-item label="测试命名:">
+                  <el-input v-model="test_title" placeholder="给新建的分组，取个名称吧"></el-input>
+              </el-form-item>
+          </el-form>
+          <!-- <input class="form-control" v-model="test_title" id="name-input" style="" type="text" placeholder="给新建的分组，取个名称吧"> -->
         </div>
         <div id="step2"  v-if="active == 2">
           <el-row>
@@ -50,24 +55,42 @@
               </el-col>
               <el-col :span="12" style="overflow-y: scroll;">
                 <div class="grid-content bg-purple-light">
-                  <!-- <el-card class="box-card">
-                    <div slot="header" class="clearfix">
-                      <span style="line-height: 36px;">规则详情</span>
-                      <el-button style="float: right;" type="primary">确认选择</el-button>
+                  <div id="rule-detail">
+                    <div class="title">
+                      <div class="cell">规则详情[{{rule_detail.rule_name}}]</div>
                     </div>
-                    <div v-for="o in paper_list" class="text item">
-                       详情
+                    <div class="rule-content">
+                      <el-row :gutter="20" class="rule-total-info">
+                        <el-col :span="8">
+                          <div class="grid-content bg-purple">总的分数：<span>{{rule_detail.score || 0}}分</span></div>
+                        </el-col>
+                        <el-col :span="8">
+                          <div class="grid-content bg-purple">总的题数：<span>{{rule_detail.quest_num || 0}}题</span></div>
+                        </el-col>
+                        <el-col :span="8">
+                          <div class="grid-content bg-purple">持续时间：<span>{{rule_detail.duration || 0}}分钟</span></div>
+                        </el-col>
+                      </el-row>
+                      <el-row :gutter="20" class="rule-group" v-for="group in rule_detail.groups">
+                          <el-col :span="12"><div class="grid-content bg-purple">分数：{{group.score || 0}}</div></el-col>
+                          <el-col :span="12"><div class="grid-content bg-purple">题数：{{group.quest_num || 0}}</div></el-col>
+                          <el-col :span="24" class="knowlege">
+                              <el-row :gutter="20">
+                                  <el-col :span="4">
+                                      知识点:
+                                  </el-row>
+                                  <el-col :span="16">
+                                    <ul>
+                                      <li v-for="knowlege in group.knowleges">
+                                        {{ knowlege.kName }}
+                                      </li>
+                                    </ul>
+                                  </el-row>
+                              </el-row>
+                          </el-col>
+                      </el-row>
                     </div>
-                  </el-card> -->
-                  <el-table
-                      :data="paper_list"
-                      highlight-current-row
-                      style="width: 100%">
-                      <el-table-column
-                        prop="rule_name"
-                        label="规则详情">
-                      </el-table-column>
-                   </el-table>
+                  </div>
                 </div>
               </el-col>
           </el-row>
@@ -105,15 +128,26 @@
                   </div>
               </el-col>
             </el-row>
+            <el-button @click="saveUpdatePaper()"　style="position: fixed; top: 60%; right: 0px; width: 42px; height: auto; height: 117px; box-shadow: 3px 3px 4px rgba(0,0,0,0.5); white-space: normal;"　type="warning">
+                保存更新　
+            </el-button>
         </div>
         <div id="step4"  v-if="active == 4">
           <el-form label-position="top" label-width="80px" :model="test_draft">
-              <el-form-item label="名称">
-                <el-input v-model="test_draft.testEndTime"></el-input>
+              <el-form-item label="设置测试截止时间:">
+                <el-date-picker
+                  v-model="test_draft.testEndTime"
+                  type="datetime"
+                  placeholder="选择测试截止时间">
+                </el-date-picker>
               </el-form-item>
-              <el-form-item label="活动区域">
-                <el-input v-model="formLabelAlign.region"></el-input>
+              <el-form-item label="测试备注:">
+                <el-input v-model="test_draft.region"></el-input>
               </el-form-item>
+              <el-form-item>
+                <el-button style="margin-top: 12px;"　type="warning"><i class="fa fa-file-text-o" aria-hidden="true"></i> 存为草稿</el-button>
+                <el-button style="margin-top: 12px;"　type="success"><i class="fa fa-paper-plane" aria-hidden="true"></i> 发布测试</el-button>
+  　　　　　　　</el-form-item>
             </el-form>
           <!-- <p>
             <span>设置测试结束时间: </span>
@@ -128,72 +162,12 @@
               off-text="">
             </el-switch>
           </p> -->
-
-          <el-button style="margin-top: 12px;">村委</el-button>
         </div>
       </div>
       <div>
           <el-button style="margin-top: 12px;" :disabled="active == 0" @click="previou">上一步</el-button>
           <el-button style="margin-top: 12px;" :disabled="active == 4" @click="next">下一步</el-button>
       </div>
-
-　    <!-- <form id="example-advanced-form" action="#">
-　　　    <h3><i class="fa fa-users"></i>&nbsp;选择分组</h3>
-　　　
-　　　
-　　　    <h3><i class="fa fa-pencil-square-o"></i>&nbsp;给测试命名</h3>
-　　　    <fieldset>
-　　　        <legend>给测试命名</legend>
-　　　        <input class="form-control" v-model="test_title" id="name-input" style="" type="text" placeholder="给新建的分组，取个名称吧">
-　　　    </fieldset>
-　　　
-　　　    <h3><i class="fa fa-database"></i>&nbsp;开始组卷</h3>
-　　　    <fieldset>
-　　　        <legend>开始组卷</legend>
-　　　
-　　　        <p></p>
-　　　    </fieldset>
-　　　
-　　　    <h3><i class="fa fa-file-text"></i>&nbsp;试卷预览</h3>
-　　　    <fieldset>
-　　　        <legend>试卷预览</legend>
-　　　
-　　　
-　　　    </fieldset>
-
-    　　　<h3><i class="fa fa-paper-plane"></i>&nbsp;发布试卷</h3>
-　　　    <fieldset>
-　　　       <legend>设置测试时间<button id="btn_save_draft" type="button" class="btn btn-warning"><i class="fa fa-plus"></i>&nbsp;存为草稿</button></legend>
-            <form class="form-horizontal">
-                <div class="row" id="date-set">
-                    <div class="col-md-12">
-                        <div class="form-group" id="data_1">
-                              <label class="col-sm-2 text-right">测试截止时间</label>
-                              <div class="col-sm-2">
-                                  <div class="input-group date">
-                                      <input id="datetimepicker" type="text" class="form-control" style="min-width: 160px;">
-                                      <span class="input-group-addon"><i class="fa fa-calendar"></i></span>
-                                  </div>
-                              </div>
-                        </div>
-                    </div>
-                    <div class="col-md-12">
-                        <div class="form-group">
-                              <label class="col-sm-2 text-right">设置测试时长</label>
-                              <div class="col-sm-2">
-                                  <div class="input-group date">
-                                      <input type="text" class="form-control" style="min-width: 160px;">
-                                      <span class="input-group-addon"><i class="fa fa-clock-o"></i></span>
-                                  </div>
-                              </div>
-                        </div>
-                    </div>
-                </div>
-              </div>
-            </form>
-　　　    </fieldset>
-　　　
-　　　</form> -->
   </div>
 </div>
 
@@ -233,19 +207,22 @@ $(document).ready(function(){
 app = new Vue({
   el: '#app',
   data: {
-    active: 4,
+    active: 0,
     test_title: "",
     groupid: '',
     groupList:[],
     ruleid: '',
     rule_list: [],
-    rule_detail: {},
+    rule_detail: {
+      groups: []
+    },
     paper_list: [],
     paper_detail: {},
     paperid: '',
     questions:[],
     test_draft:{
-      testEndTime:''
+        testEndTime:'',
+        region: ''
     }
   },
   methods: {
@@ -329,6 +306,7 @@ app = new Vue({
       return '';
     },
     getQuestList:function(questids) {
+      // 获取试卷题目列表
       var _self = this;
       $.ajax({
           type: "POST",
@@ -349,6 +327,7 @@ app = new Vue({
       });
     },
     handleCurrentRuleId: function(val) {
+      // 获取当前选中规则ｉd，并获取详情
       this.ruleid = val.rule_id;
       var _self = this;
       $.ajax({
@@ -360,6 +339,7 @@ app = new Vue({
           },
           success: function (obj) {
               var data = JSON.parse(obj)
+              console.log(data);
               _self.rule_detail = data.data;
               if(data.returnCode != 0){
                 _toastr(data.returnMsg, "top-full-width", "error", false);
@@ -368,6 +348,7 @@ app = new Vue({
       });
     },
     handleCurrentPaperId: function() {
+      // 获取当前试卷ｉd，并请求试卷详情
       var _self = this;
       $.ajax({
           type: "POST",
@@ -400,14 +381,78 @@ app = new Vue({
             },
             success: function (obj) {
                 var data = JSON.parse(obj)
-                console.log(data);
-                // if(data.paperId){
-                //   // _self.getPaperList();
-                // }else{
-                //   _toastr("更换题目失败，请重试", "top-full-width", "error", false);
-                // }
+                if(data.returnCode == 0){
+                  _self.questions = _self.questions.map(function(question, id){
+                      if(id == index){
+                        return data.data;
+                      }
+                      return question;
+                  });
+                }else{
+                   _toastr("更换题目失败，请重试", "top-full-width", "error", false);
+                }
             }
         });
+    },
+    saveUpdatePaper:function(){
+      // 保存草稿
+      var params = {
+        paperId: this.paperId,
+        questNum: this.paper_detail.quest_num,
+        paperTime: this.paper_detail.duration,
+        paperName: this.paper_detail.paper_name,
+        quests: this.paper_detail.quests
+      }
+      $.ajax({
+          type: "POST",
+          url: teacher_server_url + "testExerciseController/saveTestDraft.do",
+          data: params,
+          error: function (XMLHttpRequest, textStatus, errorThrown) {
+              _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+          },
+          success: function (obj) {
+              var data = JSON.parse(obj);
+              console.log("caogao",data);
+              if(data.returnCode == 0){
+                 _toastr("存为草稿成功", "top-full-width", "success", false);
+              }else{
+                 _toastr("存为草稿失败，请重试", "top-full-width", "error", false);
+              }
+          }
+      });
+    },
+    releasePaper: function() {
+      // 发布测试
+      $.ajax({
+          type: "POST",
+          url: teacher_server_url + "testExerciseController/saveTestDraft.do",
+          data: {teacherId:teacher_id,testId:this.testId},
+          error: function (XMLHttpRequest, textStatus, errorThrown) {
+              _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+          },
+          success: function (obj) {
+              var data = JSON.parse(obj);
+              console.log("fabu",data);
+              if(data.returnCode == 0){
+                 _toastr("发布成功", "top-full-width", "success", false);
+              }else{
+                 _toastr("发布失败，请重试", "top-full-width", "error", false);
+              }
+          }
+      });
+    },
+    saveTestDraft: function() {
+      //保存为草稿
+      var params = {
+        teacherId: teacher_id,
+        memberGroupId: this.groupid,
+        paperId: this.paperid,
+        testName: this.test_title,
+        paperSource: '2',
+        questNum: this.paper_detail.quest_num,
+        testRemark: this.test_draft.region,
+        testEndTime: this.test_draft.testEndTime
+      }
     },
     validationStep: function(index) {
       // 下一步验证

@@ -75,92 +75,86 @@ function retrieve() {
 }
 
 
-// //自定义AJAX方法
-// function ajaxRequest(params) {
-//     offset = params.data.offset;
-//     $.ajax({
-//         type: "POST",
-//         url: teacher_server_url + "/groupController/getMemberGroupList.do",
-//         data: {teacherId:teacher_id},
-//         headers: {
-//             token: sessionStorage.getItem('token')
-//         },
-//         error: function (XMLHttpRequest, textStatus, errorThrown) {
-//             _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
-//         },
-//         success: function (data) {
-//             ret = JSON.parse(data)
-//             console.log(ret.returnCode);
-//             if (ret.returnCode == 0) {
-//                 params.success(ret.data);
-//                 console.log("success")
-//             } else {
-//                 if (ret.returnCode == 1001) {
-//                     $.each(ret.errmsg, function (i, n) {
-//                         _toastr(n, "bottom-right", "error", false);
-//                     })
-//                 } else {
-//                     _toastr(ret.errmsg, "bottom-right", "error", false);
-//                 }
-//             }
-//         }
-//     });
-// }
-//
-// //初始化表格
-// function initTable() {
-//     console.log("initTable");
-//     $('#bstable').bootstrapTable({
-//         ajax: ajaxRequest,
-//         toolbar: "#toolbar",
-//         pagination: true,
-//         pageNumber: 1,
-//         pageSize: 10,
-//         pageList: [10, 20, 40],
-//         sidePagination: 'server',
-//         columns: [{
-//             field: 'group_id',
-//             title: '序号',
-//             align: 'center',
-//             width: 50,
-//             formatter: function (value, row, index) {
-//                 console.log(index);
-//                 return offset + index + 1;
-//             }
-//         }, {
-//             field: 'group_name',
-//             title: '分组名称',
-//             align: 'center',
-//             halign: 'center'
-//         }, {
-//             field: 'member_count',
-//             title: '成员数量',
-//             align: 'center',
-//             width: 100
-//         }, {
-//             field: 'opr',
-//             title: '操作',
-//             align: 'center',
-//             width: 100,
-//             formatter: function (value, row, index) {
-//                 return '<a class="edit">修改</a>&nbsp;<a class="delete">删除</a>';
-//             },
-//             events: operateEvents
-//         }]
-//     }).on('click-row.bs.table', function (e, row, $element) {
-//         $('.success').removeClass('success');
-//         $($element).addClass('success');
-//     });
-// }
+//自定义AJAX方法
+function ajaxRequest(params) {
+    offset = params.data.offset;
+    $.ajax({
+        type: "POST",
+        url: teacher_server_url + "/groupController/getMemberGroupList.do",
+        data: {teacherId:teacher_id},
+        error: function (XMLHttpRequest, textStatus, errorThrown) {
+            _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+        },
+        success: function (data) {
+            ret = JSON.parse(data)
+            console.log(ret.returnCode);
+            if (ret.returnCode == 0) {
+                params.success(ret.data);
+                console.log("success",ret.data)
+            } else {
+                if (ret.returnCode == 1001) {
+                    $.each(ret.errmsg, function (i, n) {
+                        _toastr(n, "bottom-right", "error", false);
+                    })
+                } else {
+                    _toastr(ret.errmsg, "bottom-right", "error", false);
+                }
+            }
+        }
+    });
+}
+
+//初始化表格
+function initTable() {
+    $('#bstable').bootstrapTable({
+        ajax: ajaxRequest,
+        toolbar: "#toolbar",
+        pagination: true,
+        pageNumber: 1,
+        pageSize: 10,
+        pageList: [10, 20, 40],
+        sidePagination: 'server',
+        columns: [{
+            field: 'row_index',
+            title: '序号',
+            align: 'center',
+            width: 50,
+            formatter: function (value, row, index) {
+                return offset + index + 1;
+            }
+        }, {
+            field: 'group_name',
+            title: '分组名称',
+            align: 'center',
+            halign: 'center'
+        }, {
+            field: 'member_count',
+            title: '成员数量',
+            align: 'center',
+            width: 100
+        }, {
+            field: 'opr',
+            title: '操作',
+            align: 'center',
+            width: 100,
+            formatter: function (value, row, index) {
+                return '<a class="edit">修改</a>&nbsp;<a class="delete">删除</a>';
+            },
+            events: operateEvents
+        }]
+    }).on('click-row.bs.table', function (e, row, $element) {
+        $('.success').removeClass('success');
+        $($element).addClass('success');
+    });
+}
 
 function memberTable(params) {
     offset = params.data.offset;
     rule_id = null;
     $.ajax({
         type: "POST",
-        url: server_url + "/rule/getrulelist",
-        dataType: "jsonp", // datatype can be json or jsonp
-        data: {teacherId:"1"},
+        url: teacher_server_url + "/rule/getrulelist",
+        data: {teacherId:teacher_id},
         headers: {
             token: sessionStorage.getItem('token')
         },
