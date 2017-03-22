@@ -128,6 +128,17 @@
                   </div>
               </el-col>
             </el-row>
+            <div v-if="paperTotal > pageSize">
+              <el-pagination
+                 @size-change="handleSizeChange"
+                 @current-change="handleCurrentChange"
+                 :current-page="currentPage"
+                 :page-sizes="[10, 15, 20, 25]"
+                 :page-size="pageSize"
+                 layout="total, sizes, prev, pager, next, jumper"
+                 :total="paperTotal">
+              </el-pagination>
+            </div>
             <el-button @click="saveUpdatePaper()"　style="position: fixed; top: 60%; right: 0px; width: 42px; height: auto; z-index:4;height: 117px; box-shadow: 0px 3px 4px rgba(0,0,0,0.5); white-space: normal;"　type="warning">
                 保存更新　
             </el-button>
@@ -145,23 +156,12 @@
                 <el-input v-model="test_draft.region"></el-input>
               </el-form-item>
               <el-form-item>
-                <el-button style="margin-top: 12px;" @click="saveUpdatePaper()"　type="warning"><i class="fa fa-file-text-o" aria-hidden="true"></i> 存为草稿</el-button>
+                <el-button style="margin-top: 12px;" @click="saveTestDraft()"　type="warning"><i class="fa fa-file-text-o" aria-hidden="true"></i> 存为草稿</el-button>
                 <el-button style="margin-top: 12px;" @click="releasePaper()"　type="success"><i class="fa fa-paper-plane" aria-hidden="true"></i> 发布测试</el-button>
-  　　　　　　　</el-form-item>
+                <p style="color:red;">备注：发布试卷需要先存为草稿，然后点击发布。</p>
+              </el-form-item>
             </el-form>
-          <!-- <p>
-            <span>设置测试结束时间: </span>
-            <el-date-picker
-              v-model="test_draft.testEndTime"
-              type="datetime"
-              placeholder="选择测试结束时间">
-            </el-date-picker>
-            <el-switch
-              v-model="test_draft.endTimeStatus"
-              on-text=""
-              off-text="">
-            </el-switch>
-          </p> -->
+
         </div>
       </div>
       <div>
@@ -177,6 +177,7 @@
 <!-- <script type="text/javascript" src="js/plugins/jqdatetimepick/jquery.datetimepicker.js"></script> -->
 <script src="//cdn.bootcss.com/vue/2.2.1/vue.min.js"></script>
 <script src="//cdn.bootcss.com/element-ui/1.2.4/index.js"></script>
+<script src="//cdn.bootcss.com/moment.js/2.17.1/moment.min.js"></script>
 <!-- <script type="text/javascript" src="js/teacher/jquery-labelauty.js"></script> -->
 <script>
 
@@ -204,7 +205,11 @@ app = new Vue({
     test_draft:{
         testEndTime:'',
         region: ''
-    }
+    },
+    testId: 0,
+    currentPage: 1,
+    paperTotal: 0,
+    pageSize: 10
   },
   methods: {
     next: function() {
@@ -222,6 +227,7 @@ app = new Vue({
       if (this.active　> 0){ this.active--; };
     },
     switchLetter: function(index) {
+      //  题目答案选项
       var letters = ['A', 'B', 'C', 'D'];
       return letters[index];
     },
@@ -269,15 +275,14 @@ app = new Vue({
       $.ajax({
           type: "POST",
           url: teacher_server_url + "/definedPaperController/getPaperDetailByPaperId.do?",
-          data: {paperId: this.paperid},
+          data: {paperId: this.paperid,page: this.currentPage, rows:this.pageSize},
           error: function (XMLHttpRequest, textStatus, errorThrown) {
               _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
           },
           success: function (obj) {
             var data = JSON.parse(obj);
             _self.paper_detail = data.data;
-            console.log(data,"_self.paper_detail");
-            console.log(data.data.quests.length);
+            _self.paperTotal = data.data.total;
             if(data.returnCode == 0 && data.data.quests.length){
               var questids = data.data.quests[0].quest_id;
               for(var i = 1;i < data.data.quests.length;i++){
@@ -421,40 +426,50 @@ app = new Vue({
               if(data.returnCode == 0){
                  _toastr("发布成功", "top-full-width", "success", false);
               }else{
-                 _toastr("发布失败，请重试", "top-full-width", "error", false);
+                 _toastr(data.returnMsg + "发布失败，请重试", "top-full-width", "error", false);
               }
           }
       });
     },
     saveTestDraft: function() {
       //保存为草稿
-      var params = {
-        teacherId: teacher_id,
-        memberGroupId: this.groupid,
-        paperId: this.paperid,
-        testName: this.test_title,
-        paperSource: '2',
-        questNum: this.paper_detail.quest_num,
-        testRemark: this.test_draft.region,
-        testEndTime: this.test_draft.testEndTime
+      var endTime = this.test_draft.testEndTime;
+      if(endTime){
+        var params = {
+          teacherId: teacher_id,
+          memberGroupId: this.groupid,
+          paperId: this.paperid,
+          testName: this.test_title,
+          testType: 1,
+          paperSource: 2,
+          testStartTime:moment().format('YYYY-MM-DD HH:mm:ss'),
+          questNum: this.paper_detail.quest_num,
+          testRemark: this.test_draft.region,
+          testEndTime: moment(endTime).format('YYYY-MM-DD HH:mm:ss')
+        }
+        var _self = this;
+        $.ajax({
+            type: "POST",
+            url: teacher_server_url + "/testExerciseController/saveTestDraft.do",
+            data: params,
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+            },
+            success: function (obj) {
+                var data = JSON.parse(obj);
+                console.log("caogao",data);
+                if(data.returnCode == 0){
+                    _self.testId = data.testId;
+                   _toastr("存为草稿成功", "top-full-width", "success", false);
+                }else{
+                   _toastr("存为草稿失败，请重试", "top-full-width", "error", false);
+                }
+            }
+        });
+      }else{
+        _toastr("请先选择测试结束时间，填写测试备注！", "top-full-width", "error", false);
       }
-      $.ajax({
-          type: "POST",
-          url: teacher_server_url + "/testExerciseController/saveTestDraft.do",
-          data: params,
-          error: function (XMLHttpRequest, textStatus, errorThrown) {
-              _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
-          },
-          success: function (obj) {
-              var data = JSON.parse(obj);
-              console.log("caogao",data);
-              if(data.returnCode == 0){
-                 _toastr("存为草稿成功", "top-full-width", "success", false);
-              }else{
-                 _toastr("存为草稿失败，请重试", "top-full-width", "error", false);
-              }
-          }
-      });
+
     },
     validationStep: function(index) {
       // 下一步验证
@@ -474,6 +489,12 @@ app = new Vue({
         default:
             return false;
       }
+    },
+    handleSizeChange:function(val) {
+        this.pageSize = val;
+    },
+    handleCurrentChange:function(val) {
+        this.currentPage = val;
     }
 
   }

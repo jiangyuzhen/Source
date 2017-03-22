@@ -6,8 +6,11 @@
     margin:15px auto;
     font-size: 16px;
   }
-  #btn_add {
-
+  .layui-layer-shade {
+    z-index: 2!important;
+  }
+  .layui-layer {
+    z-index: 4!important;
   }
 </style>
 
@@ -15,9 +18,8 @@
     <div class="row" style="background-color: white;padding:15px;">
       　<!--表格工具栏-->
       　<div id="toolbar">
-      　        <button class="btn btn-primary" type="button" @click="getGrouoList()"><i class="fa fa-refresh"></i>&nbsp;刷新</button>
-      　        <button id="btn_add" type="button" class="btn btn-primary"><i class="fa fa-plus"></i>&nbsp;新建分组</button>
-      　    </form>
+      　     <button class="btn btn-primary" type="button" @click="getGrouoList()"><i class="fa fa-refresh"></i>&nbsp;刷新</button>
+      　     <button id="btn_add" type="button" class="btn btn-primary"><i class="fa fa-plus"></i>&nbsp;新建分组</button>
       　</div>
         <div class="ibox float-e-margins" style="margin-top:15px;">
           <el-table
@@ -136,6 +138,10 @@
 
 <div id="viewInfo" class="container" hidden="hidden" style="width:100%;">
   <div class="panel panel-primary">
+      <div class="panel-heading">
+        <button class="btn btn-primary" type="button" @click="viewGroupInfo(group)"><i class="fa fa-refresh"></i>&nbsp;刷新</button>
+        <button type="button" class="btn btn-primary" @click="deleteStudent()"><i class="fa fa-trash-o" aria-hidden="true"></i>&nbsp;批量删除</button>
+      </div>
       <div class="panel-body">
         <el-table
           :data="groupInfo"
@@ -176,13 +182,13 @@
             label="平均答题时间"
             width="160">
           </el-table-column>
-          <el-table-column
+          <!-- <el-table-column
             label="操作"
             width="100">
             <template scope="scope">
               <el-button @click="deleteStudentConfirm(scope.row, scope.$index)" type="text" size="small">移除学习小组</el-button>
             </template>
-          </el-table-column>
+          </el-table-column> -->
         </el-table>
       </div>
   </div>
@@ -392,26 +398,31 @@ var app = new Vue({
 var info = new Vue({
   el:'#viewInfo',
   data:{
+    group: {},
     groupId: '',
     groupName: '',
     members: '',
+    students: [],
     groupInfo: []
   },
   methods: {
     handleDeleteChange:function(val){
       var _self = this;
-      var members = '[';
+      var members = '';
+      this.students = [];
       val.map(function(student, index){
-        members += '{"memberId":'+student.member_id+'}';
+        members += student.member_id;
+        _self.students.push(student.member_id);
         if(index < (val.length - 1)){
           members += ',';
         }
       });
-      this.members = members + ']';
+      this.members = members;
     },
     viewGroupInfo:function(row) {
       var _self = this;
       this.groupId = row.group_id;
+      this.group = row;
       $.ajax({
           type: "POST",
           url: teacher_server_url + "/groupController/getMembersOfGroup.do",
@@ -430,16 +441,16 @@ var info = new Vue({
           }
       });
     },
-    deleteStudentConfirm:function(row, inedx) {
-      console.log(row);
+    deleteStudentConfirm:function() {
       var self = this;
-      var msg = '此操作将永久删除将'+ row.member_name +'从' + this.groupName + '分组中移除, 是否继续?';
+      console.log("shanchu");
+      var msg = '此操作将已选中成员永久从分组中的移除, 是否继续?';
       this.$confirm(msg, '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        self.deleteStudent(row, index);
+        self.deleteStudent();
       }).catch(() => {
         this.$message({
           type: 'info',
@@ -447,11 +458,12 @@ var info = new Vue({
         });
       });
     },
-    deleteStudent:function(row, index) {
+    deleteStudent:function() {
+      var _self = this;
       $.ajax({
           type: "POST",
           url: teacher_server_url + "/groupController/deleteMemberFromGroup.do",
-          data: {members:this.members,groupId:this.group_id,teacherId:teacher_id},
+          data: {memberIds:this.members,groupId:this.groupId},
           error: function (XMLHttpRequest, textStatus, errorThrown) {
               _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
           },
@@ -460,7 +472,9 @@ var info = new Vue({
               if(data.returnCode != 0){
                 _toastr(data.returnMsg, "top-full-width", "error", false);
               }else{
-                _self.groupInfo.splice(index, 1);
+                _self.groupInfo = _self.groupInfo.filter(function(student,index){
+                  return _self.students.indexOf(student.member_id) === -1;
+                });
                 _toastr(data.returnMsg, "top-full-width", "error", false);
               }
           }
