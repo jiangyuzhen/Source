@@ -128,7 +128,7 @@
                   </div>
               </el-col>
             </el-row>
-            <el-button @click="saveUpdatePaper()"　style="position: fixed; top: 60%; right: 0px; width: 42px; height: auto; height: 117px; box-shadow: 3px 3px 4px rgba(0,0,0,0.5); white-space: normal;"　type="warning">
+            <el-button @click="saveUpdatePaper()"　style="position: fixed; top: 60%; right: 0px; width: 42px; height: auto; z-index:4;height: 117px; box-shadow: 0px 3px 4px rgba(0,0,0,0.5); white-space: normal;"　type="warning">
                 保存更新　
             </el-button>
         </div>
@@ -276,14 +276,14 @@ app = new Vue({
           success: function (obj) {
             var data = JSON.parse(obj);
             _self.paper_detail = data.data;
-            console.log(data,"_self.paper_detail")
+            console.log(data,"_self.paper_detail");
+            console.log(data.data.quests.length);
             if(data.returnCode == 0 && data.data.quests.length){
               var questids = data.data.quests[0].quest_id;
               for(var i = 1;i < data.data.quests.length;i++){
                 var quest = data.data.quests[i]
                 questids += ','+quest.quest_id;
               }
-              console.log(questids);
               _self.getQuestList(questids);
             }
           }

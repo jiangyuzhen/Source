@@ -6,14 +6,16 @@
     margin:15px auto;
     font-size: 16px;
   }
+  #btn_add {
 
+  }
 </style>
 
 <div id="group" class="wrapper wrapper-content">
     <div class="row" style="background-color: white;padding:15px;">
       　<!--表格工具栏-->
       　<div id="toolbar">
-      　        <button class="btn btn-primary" type="button" onclick="getGrouoList()"><i class="fa fa-refresh"></i>&nbsp;刷新</button>
+      　        <button class="btn btn-primary" type="button" @click="getGrouoList()"><i class="fa fa-refresh"></i>&nbsp;刷新</button>
       　        <button id="btn_add" type="button" class="btn btn-primary"><i class="fa fa-plus"></i>&nbsp;新建分组</button>
       　    </form>
       　</div>
@@ -21,8 +23,7 @@
           <el-table
             :data="groupList"
             border
-            style="width: 100%"
-            @selection-change="handleSelectionChange">
+            style="width: 100%">
             <el-table-column
               type="index"
               width="50">
@@ -39,10 +40,11 @@
             </el-table-column>
             <el-table-column
               label="操作"
+              prop="group_id"
               width="100">
               <template scope="scope">
-                <el-button type="text" size="small">详情</el-button>
-                <el-button @click="deleteGroup()" type="text" size="small">删除</el-button>
+                <el-button  @click.native.prevent="viewGroupInfo(scope.row)" type="text" size="small">详情</el-button>
+                <el-button @click.native.prevent="deleteGroupConfirm(scope.row, scope.$index, groupList)" type="text" size="small">删除</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -51,9 +53,8 @@
 </div>
 
 
-
 <div id="app">
-    <div id="add_group_edit" class="container" hidden="hidden">
+    <div id="add_group_edit" class="container" hidden="hidden" style="width:100%;">
         <div class="panel panel-primary">
             <div class="panel-body">
                 <form class="form-horizontal">
@@ -62,7 +63,7 @@
                         <div class="col-md-12">
                             <label class="col-md-12 control-label title">分组名称</label>
                             <div class="col-md-12">
-                                <input class="form-control" style="text-align: center;" type="text" placeholder="给新建的分组，取个名称吧">
+                                <input v-model="params.groupName" class="form-control" style="text-align: center;" type="text" placeholder="给新建的分组，取个名称吧">
                             </div>
                         </div>
                     </div>
@@ -75,53 +76,55 @@
                                   :data="studentList"
                                   border
                                   style="width: 100%"
+                                  :default-sort = "{prop: prop, order: order}"
                                   @selection-change="handleSelectionChange">
                                   <el-table-column
-                                    type="index"
+                                    type="selection"
                                     width="50">
                                   </el-table-column>
                                   <el-table-column
-                                    prop="studentCode"
+                                    type="index"
+                                    width="60">
+                                  </el-table-column>
+                                  <el-table-column
+                                    prop="student_code"
+                                    sortable
                                     label="学籍号">
                                   </el-table-column>
                                   <el-table-column
-                                    prop="memberName"
+                                    prop="member_name"
                                     label="学生姓名">
                                   </el-table-column>
                                   <el-table-column
-                                    prop="className"
+                                    prop="class_name"
                                     label="班级名称">
                                   </el-table-column>
                                   <el-table-column
-                                    prop="classType"
-                                    label="班级类型">
-                                  </el-table-column>
-                                  <el-table-column
-                                    prop="exciserNum"
+                                    prop="exciser_num"
+                                    sortable
                                     label="答题数">
                                   </el-table-column>
                                   <el-table-column
-                                    prop="exciserTime"
+                                    prop="exciser_time"
+                                    sortable
                                     label="练习时长">
                                   </el-table-column>
                                   <el-table-column
-                                    prop="rightRate"
+                                    prop="right_rate"
+                                    sortable
                                     label="正确率">
                                   </el-table-column>
                                   <el-table-column
-                                    prop="exciserAvg"
-                                    label="平均答题时间">
-                                  </el-table-column>
-                                  <el-table-column
-                                    label="操作"
-                                    width="100">
-                                    <template scope="scope">
-                                      <el-button @click="addStudent()" type="text" size="small">加入学习小组</el-button>
-                                    </template>
+                                    prop="exciser_avg"
+                                    sortable
+                                    label="平均答题时间"
+                                    width="160">
                                   </el-table-column>
                                 </el-table>
                               </div>
-                              <button id="btn_add" type="button" class="btn btn-primary"><i class="fa fa-check"></i>&nbsp;完成新建分组</button>
+                              <button @click="createGroup()" id="btn_add" type="button" class="btn btn-primary" style="margin-top: 15px; position: fixed; right: 22px; top: 20%; white-space: normal; width: 42px; z-index: 4; box-shadow: 0px 3px 6px rgba(0,0,0,0.5);">
+                                完成新建分组
+                              </button>
                           </div>
                       </div>
                     </div>
@@ -131,12 +134,66 @@
     </div>
 </div>
 
+<div id="viewInfo" class="container" hidden="hidden" style="width:100%;">
+  <div class="panel panel-primary">
+      <div class="panel-body">
+        <el-table
+          :data="groupInfo"
+          border
+          style="width: 100%"
+          :default-sort = "{prop:'student_code', order: 'descending'}"
+          @selection-change="handleDeleteChange">
+          <el-table-column
+            type="selection"
+            width="50">
+          </el-table-column>
+          <el-table-column
+            type="index"
+            width="60">
+          </el-table-column>
+          <el-table-column
+            prop="student_code"
+            sortable
+            label="学籍号">
+          </el-table-column>
+          <el-table-column
+            prop="member_name"
+            label="学生姓名">
+          </el-table-column>
+          <el-table-column
+            prop="exciser_num"
+            sortable
+            label="答题数">
+          </el-table-column>
+          <el-table-column
+            prop="exciser_time"
+            sortable
+            label="练习时长">
+          </el-table-column>
+          <el-table-column
+            prop="exciser_avg"
+            sortable
+            label="平均答题时间"
+            width="160">
+          </el-table-column>
+          <el-table-column
+            label="操作"
+            width="100">
+            <template scope="scope">
+              <el-button @click="deleteStudentConfirm(scope.row, scope.$index)" type="text" size="small">移除学习小组</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+  </div>
+</div>
+
 <% include ../footer.html %>
 <script src="//cdn.bootcss.com/vue/2.2.1/vue.min.js"></script>
 <script src="//cdn.bootcss.com/element-ui/1.2.4/index.js"></script>
 
 <script>
-
+var layer_index;
 $(document).ready(function () {
    $("#btn_add").click(function() {
        Edit();
@@ -157,16 +214,25 @@ function Edit() {
     });
 }
 
+//打开详情界面
+function view(title) {
+    layer_index = layer.open({
+        type: 1,
+        title: "［" + title + "］详情",
+        shadeClose: true,
+        maxmin: true,
+        area: ['100%', '100%'],
+        content: $('#viewInfo')
+    });
+}
+
+// 分组列表
 var group = new Vue({
   el: '#group',
   data: {
-    groupList: [],
-    multipleSelection: []
+    groupList: []
   },
   methods: {
-      handleSelectionChange:function(val) {
-        this.multipleSelection = val;
-      },
       getGrouoList: function() {
         var _self = this;
         $.ajax({
@@ -185,38 +251,220 @@ var group = new Vue({
             }
         });
       },
-      deleteGroup:function() {
-          console.log("shangchu fenzhu ");
+      deleteGroupConfirm: function(row, index, rows){
+        var self = this;
+        this.$confirm('此操作将永久删除该分组, 是否继续?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          self.deleteGroup(row, index);
+        }).catch(() => {
+          this.$message({
+            type: 'info',
+            message: '已取消删除'
+          });
+        });
+      },
+      deleteGroup:function(row, index) {
+        console.log("shanchu",index);
+        var _self = this;
+        $.ajax({
+            type: "POST",
+            url: teacher_server_url + "/groupController/deleteMemberGroup.do",
+            data: {teacherId:teacher_id, groupId:row.group_id},
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+            },
+            success: function (obj) {
+              var data = JSON.parse(obj);
+                _self.groupList = data.data;
+                if(data.returnCode != 0){
+                  _toastr(data.returnMsg, "top-full-width", "error", false);
+                }else{
+                  _self.groupList.splice(index, 1);
+                  _toastr("删除分组成功", "top-full-width", "success", false);
+                }
+            }
+        });
+      },
+      viewGroupInfo:function(row) {
+        info.viewGroupInfo(row);
       }
   }
 })
 
+// 创建分组
 var app = new Vue({
   el: '#app',
   data: {
-    studentList: []
+    showCreateBtn: false,
+    prop: 'student_code',
+    order: 'descending',
+    studentList: [],
+    multipleSelection: [],
+    params: {
+      teacherId: teacher_id,
+      groupName: '',
+      isDefault: ''
+    }
   },
   methods: {
+    handleSelectionChange:function(val) {
+      var _self = this;
+      var members = '[';
+      val.map(function(student, index){
+        members += '{"memberId":'+student.member_id+'}';
+        if(index < (val.length - 1)){
+          members += ',';
+        }
+      });
+      this.params.isDefault = members + ']';
+    },
     getStudentList:function() {
       var _self = this;
       $.ajax({
           type: "POST",
           url: teacher_server_url + "/groupController/getMembersForTest.do",
-          data: {teacherId:teacher_id},
+          data: {teacherId: teacher_id},
           error: function (XMLHttpRequest, textStatus, errorThrown) {
               _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
           },
           success: function (obj) {
             var data = JSON.parse(obj);
-              _self.studentList = data.data;
+
               if(data.returnCode != 0){
                 _toastr(data.returnMsg, "top-full-width", "error", false);
+              }else{
+                _self.studentList = data.data;
+                _self.showCreateBtn = true;
               }
           }
       });
     },
+    createGroup: function() {
+      var _self = this;
+      if(this.params.groupName == ''){
+        this.$notify({
+          title: '警告',
+          message: '请填写分组名称',
+          type: 'warning'
+        });
+      }else{
+        $.ajax({
+            type: "POST",
+            url: teacher_server_url + "/groupController/createMemberGroup.do",
+            data: this.params,
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+            },
+            success: function (obj) {
+              var data = JSON.parse(obj);
+              if(data.returnCode != 0){
+                  _self.$notify({
+                    title: '错误',
+                    message: data.returnMsg,
+                    type: 'error'
+                  });
+              }else{
+                  _toastr("创建分组成功", "top-full-width", "success", false);
+                  group.getGrouoList();
+                  _self.showCreateBtn = false;
+                  _self.params = {
+                    teacherId: teacher_id,
+                    groupName: '',
+                    isDefault: []
+                  }
+                  layer.close(layer_index);
+              }
+            }
+        });
+      }
+
+    },
     addStudent:function() {
 
+    }
+  }
+})
+
+// 分组详情
+var info = new Vue({
+  el:'#viewInfo',
+  data:{
+    groupId: '',
+    groupName: '',
+    members: '',
+    groupInfo: []
+  },
+  methods: {
+    handleDeleteChange:function(val){
+      var _self = this;
+      var members = '[';
+      val.map(function(student, index){
+        members += '{"memberId":'+student.member_id+'}';
+        if(index < (val.length - 1)){
+          members += ',';
+        }
+      });
+      this.members = members + ']';
+    },
+    viewGroupInfo:function(row) {
+      var _self = this;
+      this.groupId = row.group_id;
+      $.ajax({
+          type: "POST",
+          url: teacher_server_url + "/groupController/getMembersOfGroup.do",
+          data: {teacherId:teacher_id,groupId:row.group_id},
+          error: function (XMLHttpRequest, textStatus, errorThrown) {
+              _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+          },
+          success: function (obj) {
+            var data = JSON.parse(obj);
+              _self.groupInfo = data.data;
+              if(data.returnCode != 0){
+                _toastr(data.returnMsg, "top-full-width", "error", false);
+              }else{
+                view(row.group_name);
+              }
+          }
+      });
+    },
+    deleteStudentConfirm:function(row, inedx) {
+      console.log(row);
+      var self = this;
+      var msg = '此操作将永久删除将'+ row.member_name +'从' + this.groupName + '分组中移除, 是否继续?';
+      this.$confirm(msg, '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        self.deleteStudent(row, index);
+      }).catch(() => {
+        this.$message({
+          type: 'info',
+          message: '已取消删除'
+        });
+      });
+    },
+    deleteStudent:function(row, index) {
+      $.ajax({
+          type: "POST",
+          url: teacher_server_url + "/groupController/deleteMemberFromGroup.do",
+          data: {members:this.members,groupId:this.group_id,teacherId:teacher_id},
+          error: function (XMLHttpRequest, textStatus, errorThrown) {
+              _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+          },
+          success: function (obj) {
+            var data = JSON.parse(obj);
+              if(data.returnCode != 0){
+                _toastr(data.returnMsg, "top-full-width", "error", false);
+              }else{
+                _self.groupInfo.splice(index, 1);
+                _toastr(data.returnMsg, "top-full-width", "error", false);
+              }
+          }
+      });
     }
   }
 })

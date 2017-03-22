@@ -15,7 +15,13 @@ var app = express();
 app.set('views', path.join(__dirname, 'views'));
 app.engine('html', require('ejs').renderFile);
 app.set('view engine', 'html');
-app.use('/JDEdu/*', proxy("http://www.yunxue365.cn:8080/JDEdu", {
+// app.use('/JDEdu/*', proxy("http://www.yunxue365.cn:8080/JDEdu", {
+//   reqBodyEncoding: null,
+//   forwardPath: function(req, res) {
+//     return req.originalUrl;
+//   }
+// }));
+app.use('/JDEdu/*', proxy("http://hezs.tunnel.qydev.com/JDEdu", {
   reqBodyEncoding: null,
   forwardPath: function(req, res) {
     return req.originalUrl;
