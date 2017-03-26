@@ -1,7 +1,4 @@
 <% include ../header.html %>
-<!-- <link rel="stylesheet" href="css/plugins/ztree/zTreeStyle/zTreeStyle.css" /> -->
-<!-- <link rel="stylesheet" href="css/plugins/steps/jquery.steps.css" /> -->
-<!-- <link href="css/plugins/jqdatetimepicker/jquery.datetimepicker.css" rel="stylesheet"> -->
 <link href="//cdn.bootcss.com/element-ui/1.2.4/theme-default/index.css" rel="stylesheet">
 <link rel="stylesheet" href="css/teacher/dispose_works.css" />
 
@@ -17,7 +14,7 @@
         </el-steps>
       </div>
       <div id="step-content">
-        <div id="step0" v-if="active == 0">
+        <div id="step0" v-if="active == 0" v-loading='loads.loading1' element-loading-text="加载中...">
           <el-select v-model="groupid" placeholder="请选择目标分组">
             <el-option
                 v-for="group in groupList"
@@ -35,7 +32,6 @@
                   <el-input v-model="test_title" placeholder="给新建的分组，取个名称吧"></el-input>
               </el-form-item>
           </el-form>
-          <!-- <input class="form-control" v-model="test_title" id="name-input" style="" type="text" placeholder="给新建的分组，取个名称吧"> -->
         </div>
         <div id="step2"  v-if="active == 2">
           <el-row>
@@ -44,6 +40,8 @@
                   <el-table
                       :data="rule_list"
                       highlight-current-row
+                      v-loading='loads.loading2'
+                      element-loading-text="加载中..."
                       @current-change="handleCurrentRuleId"
                       style="width: 100%">
                       <el-table-column
@@ -55,7 +53,7 @@
               </el-col>
               <el-col :span="12" style="overflow-y: scroll;">
                 <div class="grid-content bg-purple-light">
-                  <div id="rule-detail">
+                  <div id="rule-detail"  v-loading='loads.loading3' element-loading-text="加载中...">
                     <div class="title">
                       <div class="cell">规则详情[{{rule_detail.rule_name}}]</div>
                     </div>
@@ -95,7 +93,7 @@
               </el-col>
           </el-row>
         </div>
-        <div id="step3"  v-if="active == 3">
+        <div id="step3"  v-if="active == 3"  v-loading='loads.loading4' element-loading-text="拼命加载中...">
             <el-row>
                 <el-col :span="24">
                   <div class="black-content bg-purple-dark">
@@ -143,7 +141,7 @@
                 保存更新　
             </el-button>
         </div>
-        <div id="step4"  v-if="active == 4">
+        <div id="step4"  v-if="active == 4" v-loading='loads.loading5' element-loading-text="加载中...">
           <el-form label-position="top" label-width="80px" :model="test_draft">
               <el-form-item label="设置测试截止时间:">
                 <el-date-picker
@@ -172,13 +170,9 @@
 </div>
 
 <% include ../footer.html %>
-
-<!-- <script type="text/javascript" src="js/plugins/steps/jquery.steps.min.js"></script> -->
-<!-- <script type="text/javascript" src="js/plugins/jqdatetimepick/jquery.datetimepicker.js"></script> -->
 <script src="//cdn.bootcss.com/vue/2.2.1/vue.min.js"></script>
 <script src="//cdn.bootcss.com/element-ui/1.2.4/index.js"></script>
 <script src="//cdn.bootcss.com/moment.js/2.17.1/moment.min.js"></script>
-<!-- <script type="text/javascript" src="js/teacher/jquery-labelauty.js"></script> -->
 <script>
 
 $(document).ready(function(){
@@ -209,7 +203,14 @@ app = new Vue({
     testId: 0,
     currentPage: 1,
     paperTotal: 0,
-    pageSize: 10
+    pageSize: 10,
+    loads:{
+      loading1: true,
+      loading2: false,
+      loading3: false,
+      loading4: false,
+      loading5: false
+    }
   },
   methods: {
     next: function() {
@@ -242,10 +243,12 @@ app = new Vue({
               _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
           },
           success: function (obj) {
-            var data = JSON.parse(obj);
-              _self.groupList = data.data;
+              var data = JSON.parse(obj);
+              _self.loads.loading1 = false;
               if(data.returnCode != 0){
                 _toastr(data.returnMsg, "top-full-width", "error", false);
+              }else{
+                _self.groupList = data.data;
               }
           }
       });
@@ -253,6 +256,7 @@ app = new Vue({
     getRuleList: function() {
       // 获取规则列表
       var _self = this;
+      _self.loads.loading2 = true;
       $.ajax({
           type: "POST",
           url: teacher_server_url + "/ruleController/getRuleList.do",
@@ -261,9 +265,11 @@ app = new Vue({
           },
           success: function (obj) {
             var data = JSON.parse(obj);
-            _self.rule_list = data.data;
+            _self.loads.loading2 = false;
             if(data.returnCode != 0){
               _toastr(data.returnMsg, "top-full-width", "error", false);
+            }else{
+              _self.rule_list = data.data;
             }
           }
       });
@@ -309,7 +315,6 @@ app = new Vue({
             var data = JSON.parse(obj);
             if(data.returnCode == 0){
                _self.questions = data.data;
-               console.log(data.data);
             }else{
               _toastr(data.returnMsg, "top-full-width", "error", false);
             }
@@ -320,6 +325,7 @@ app = new Vue({
       // 获取当前选中规则ｉd，并获取详情
       this.ruleid = val.rule_id;
       var _self = this;
+      _self.loads.loading3 = true;
       $.ajax({
           type: "POST",
           url: teacher_server_url + "/ruleController/getRuleDetailByRuleId.do",
@@ -329,10 +335,11 @@ app = new Vue({
           },
           success: function (obj) {
               var data = JSON.parse(obj)
-              console.log(data);
-              _self.rule_detail = data.data;
+              _self.loads.loading3 = false;
               if(data.returnCode != 0){
                 _toastr(data.returnMsg, "top-full-width", "error", false);
+              }else{
+                _self.rule_detail = data.data;
               }
           }
       });
@@ -340,6 +347,7 @@ app = new Vue({
     handleCurrentPaperId: function() {
       // 获取当前试卷ｉd，并请求试卷详情
       var _self = this;
+      _self.loads.loading4 = true;
       $.ajax({
           type: "POST",
           url: teacher_server_url + "/definedPaperController/getPaperIdByRuleId.do",
@@ -349,6 +357,7 @@ app = new Vue({
           },
           success: function (obj) {
               var data = JSON.parse(obj)
+              _self.loads.loading4 = false;
               _self.paperid = data.paperId;
               if(data.paperId){
                 _self.getPaperList();
@@ -362,6 +371,7 @@ app = new Vue({
       // 换题
         var kid  = question_knowledge.question_knowledge_point_id;
         var _self = this;
+        _self.loads.loading4 = true;
         $.ajax({
             type: "POST",
             url: teacher_server_url + "/definedPaperController/getOneQuestForPaper.do",
@@ -370,7 +380,8 @@ app = new Vue({
                 _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
             },
             success: function (obj) {
-                var data = JSON.parse(obj)
+                var data = JSON.parse(obj);
+                _self.loads.loading4 = false;
                 if(data.returnCode == 0){
                   _self.questions = _self.questions.map(function(question, id){
                       if(id == index){
@@ -386,6 +397,7 @@ app = new Vue({
     },
     saveUpdatePaper:function(){
       // 保存更新
+      this.loads.loading4 = true;
       var params = {
         paperId: this.paperId,
         questNum: this.paper_detail.quest_num,
@@ -393,6 +405,7 @@ app = new Vue({
         paperName: this.paper_detail.paper_name,
         quests: this.paper_detail.quests
       }
+      var _self = this;
       $.ajax({
           type: "POST",
           url: teacher_server_url + "/definedPaperController/updatePaperDetail.do",
@@ -402,6 +415,7 @@ app = new Vue({
           },
           success: function (obj) {
               var data = JSON.parse(obj);
+              _self.loads.loading4 = false;
               if(data.returnCode == 0){
                  _toastr("保存更新成功", "top-full-width", "success", false);
               }else{
@@ -422,9 +436,9 @@ app = new Vue({
           },
           success: function (obj) {
               var data = JSON.parse(obj);
-              console.log("fabu",data);
               if(data.returnCode == 0){
                  _toastr("发布成功", "top-full-width", "success", false);
+                 location.href = "/admin/dispose_work";
               }else{
                  _toastr(data.returnMsg + "发布失败，请重试", "top-full-width", "error", false);
               }
@@ -434,6 +448,7 @@ app = new Vue({
     saveTestDraft: function() {
       //保存为草稿
       var endTime = this.test_draft.testEndTime;
+      this.loads.loading5 = true;
       if(endTime){
         var params = {
           teacherId: teacher_id,
@@ -457,7 +472,7 @@ app = new Vue({
             },
             success: function (obj) {
                 var data = JSON.parse(obj);
-                console.log("caogao",data);
+                _self.loads.loading5 = false;
                 if(data.returnCode == 0){
                     _self.testId = data.testId;
                    _toastr("存为草稿成功", "top-full-width", "success", false);

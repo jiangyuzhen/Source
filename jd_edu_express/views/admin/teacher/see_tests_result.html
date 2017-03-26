@@ -1,0 +1,77 @@
+<% include ../header.html %>
+<link href="//cdn.bootcss.com/element-ui/1.2.4/theme-default/index.css" rel="stylesheet">
+<link rel="stylesheet" href="css/teacher/dispose_works.css" />
+
+<div class="wrapper wrapper-content"  id="app">
+  <div class="row" style="background-color: white;padding: 15px;" >
+    <!-- <el-tabs v-model="setting.activeName" @tab-click="handleClick">
+      <el-tab-pane label="测试列表" name="first">
+
+      </el-tab-pane>
+      <el-tab-pane label="配置管理" name="second">配置管理</el-tab-pane>
+      <el-tab-pane label="角色管理" name="third">角色管理</el-tab-pane>
+      <el-tab-pane label="定时任务补偿" name="fourth">定时任务补偿</el-tab-pane>
+    </el-tabs> -->
+    <div>
+      <a href="#" test-id="38" test-status="1">
+        <div class="realcontent_a_p">
+          <p class="left_p_content">
+            <span class="span_title">aaa</span>
+            <span class="span_deadline">测试截止时间：2017-3-28</span>
+          </p>
+          <p class="bottom_p_content">共40题；还有4位同学未完成练习；发布时间：2017-3-26</p>
+        </div>
+        <div class="circliful_float_right circliful" id="myStat0" data-dimension="90" data-text="0%" data-info="" data-width="10" data-fontsize="14" data-percent="0" data-fgcolor="#28b77a" data-bgcolor="#eee" data-fill="#ddd" style="width: 90px;">
+          <span class="circle-text" style="line-height: 90px; font-size: 14px;">0%</span>
+          <span class="circle-info" style="line-height: 112.5px;"></span>
+          <canvas width="90" height="90"></canvas>
+        </div>
+      </a>
+    </div>
+  </div>
+  <div class="row" style="background-color: white;padding: 15px;text-align:center;margin-top:15px;">
+    <el-pagination
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+      :current-page="page.currentPage"
+      :page-sizes="[10, 15, 20, 25]"
+      :page-size="page.pageSize"
+      layout="total, sizes, prev, pager, next, jumper"
+      :total="page.totalPage">
+    </el-pagination>
+  </div>
+</div>
+
+<% include ../footer.html %>
+<script src="//cdn.bootcss.com/vue/2.2.1/vue.min.js"></script>
+<script src="//cdn.bootcss.com/element-ui/1.2.4/index.js"></script>
+<script src="//cdn.bootcss.com/moment.js/2.17.1/moment.min.js"></script>
+<script>
+
+  var app = new Vue({
+    el:'#app',
+    data:{
+      setting:{
+        activeName: 'first'
+      },
+      page:{
+        currentPage: 1,
+        pageSize: 10,
+        totalPage: 200
+      }
+    },
+    methods:{
+      handleClick:function(tab, event) {
+        console.log(tab, event);
+      },
+      handleSizeChange:function(val) {
+        console.log(`每页 ${val} 条`);
+      },
+      handleCurrentChange:function(val) {
+        this.currentPage = val;
+        console.log(`当前页: ${val}`);
+      }
+    }
+  });
+
+</script>

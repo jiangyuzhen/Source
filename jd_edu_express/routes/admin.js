@@ -202,11 +202,7 @@ router.get('/dispose_work', function(req, res) {
 });
 
 router.get('/see_tests_result', function(req, res) {
-    res.render('./admin/teacher/see_tests_result', { title: '查看测试'});
-});
-
-router.get('/ground_detail', function(req, res) {
-    res.render('./admin/teacher/ground_detail', { title: '分组详情'});
+    res.render('./admin/teacher/see_tests_result', { title: '测试结果'});
 });
 
 
