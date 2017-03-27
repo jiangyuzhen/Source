@@ -34,64 +34,97 @@
           </el-form>
         </div>
         <div id="step2"  v-if="active == 2">
-          <el-row>
-              <el-col :span="12" style="border-right: solid 1px #dedede;min-height: 370px;overflow-y: scroll;">
-                <div class="grid-content bg-purple">
-                  <el-table
-                      :data="rule_list"
-                      highlight-current-row
-                      v-loading='loads.loading2'
-                      element-loading-text="加载中..."
-                      @current-change="handleCurrentRuleId"
-                      style="width: 100%">
-                      <el-table-column
-                        prop="rule_name"
-                        label="请选择组卷规则">
-                      </el-table-column>
-                   </el-table>
-                </div>
-              </el-col>
-              <el-col :span="12" style="overflow-y: scroll;">
-                <div class="grid-content bg-purple-light">
-                  <div id="rule-detail"  v-loading='loads.loading3' element-loading-text="加载中...">
-                    <div class="title">
-                      <div class="cell">规则详情[{{rule_detail.rule_name}}]</div>
-                    </div>
-                    <div class="rule-content">
-                      <el-row :gutter="20" class="rule-total-info">
-                        <el-col :span="8">
-                          <div class="grid-content bg-purple">总的分数：<span>{{rule_detail.score || 0}}分</span></div>
-                        </el-col>
-                        <el-col :span="8">
-                          <div class="grid-content bg-purple">总的题数：<span>{{rule_detail.quest_num || 0}}题</span></div>
-                        </el-col>
-                        <el-col :span="8">
-                          <div class="grid-content bg-purple">持续时间：<span>{{rule_detail.duration || 0}}分钟</span></div>
-                        </el-col>
-                      </el-row>
-                      <el-row :gutter="20" class="rule-group" v-for="group in rule_detail.groups">
-                          <el-col :span="12"><div class="grid-content bg-purple">分数：{{group.score || 0}}</div></el-col>
-                          <el-col :span="12"><div class="grid-content bg-purple">题数：{{group.quest_num || 0}}</div></el-col>
-                          <el-col :span="24" class="knowlege">
-                              <el-row :gutter="20">
-                                  <el-col :span="4">
-                                      知识点:
-                                  </el-row>
-                                  <el-col :span="16">
-                                    <ul>
-                                      <li v-for="knowlege in group.knowleges">
-                                        {{ knowlege.kName }}
-                                      </li>
-                                    </ul>
-                                  </el-row>
-                              </el-row>
+          <div id="paper-type-btns"  v-if="paperType == 0">
+            <p>请先选择组卷方式</p>
+            <div>
+              <el-button type="success" @click="handlePaperType(2)">按知识点组卷</el-button>
+            </div>
+            <div>
+              <el-button type="info"  @click="handlePaperType(1)">按规则组卷</el-button>
+            </div>
+          </div>
+          <div v-if="paperType == 1">
+            <el-row>
+                <el-col :span="12" style="border-right: solid 1px #dedede;min-height: 370px;overflow-y: scroll;">
+                  <div class="grid-content bg-purple">
+                    <el-table
+                        :data="rule_list"
+                        highlight-current-row
+                        v-loading='loads.loading2'
+                        element-loading-text="加载中..."
+                        @current-change="handleCurrentRuleId"
+                        style="width: 100%">
+                        <el-table-column
+                          prop="rule_name"
+                          label="请选择组卷规则">
+                        </el-table-column>
+                     </el-table>
+                  </div>
+                </el-col>
+                <el-col :span="12" style="overflow-y: scroll;">
+                  <div class="grid-content bg-purple-light">
+                    <div id="rule-detail"  v-loading='loads.loading3' element-loading-text="加载中...">
+                      <div class="title">
+                        <div class="cell">规则详情[{{rule_detail.rule_name}}]</div>
+                      </div>
+                      <div class="rule-content">
+                        <el-row :gutter="20" class="rule-total-info">
+                          <el-col :span="8">
+                            <div class="grid-content bg-purple">总的分数：<span>{{rule_detail.score || 0}}分</span></div>
                           </el-col>
-                      </el-row>
+                          <el-col :span="8">
+                            <div class="grid-content bg-purple">总的题数：<span>{{rule_detail.quest_num || 0}}题</span></div>
+                          </el-col>
+                          <el-col :span="8">
+                            <div class="grid-content bg-purple">持续时间：<span>{{rule_detail.duration || 0}}分钟</span></div>
+                          </el-col>
+                        </el-row>
+                        <el-row :gutter="20" class="rule-group" v-for="group in rule_detail.groups">
+                            <el-col :span="12"><div class="grid-content bg-purple">分数：{{group.score || 0}}</div></el-col>
+                            <el-col :span="12"><div class="grid-content bg-purple">题数：{{group.quest_num || 0}}</div></el-col>
+                            <el-col :span="24" class="knowlege">
+                                <el-row :gutter="20">
+                                    <el-col :span="4">
+                                        知识点:
+                                    </el-row>
+                                    <el-col :span="16">
+                                      <ul>
+                                        <li v-for="knowlege in group.knowleges">
+                                          {{ knowlege.kName }}
+                                        </li>
+                                      </ul>
+                                    </el-row>
+                                </el-row>
+                            </el-col>
+                        </el-row>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </el-col>
-          </el-row>
+                </el-col>
+            </el-row>
+          </div>
+          <div id="knowlegePanel" v-if="paperType == 2">
+            <div class="clearfix knows">
+              <div class="fl chl">
+                  知识点类型
+              </div>
+              <div class="fl chr clearfix" id="tabEduLevels">
+                <a class="fl" href="###"  @click="selectKnow(knowlege.kbillId, knowlege.kname)" v-for="knowlege in paper.KnowledgeTrees">
+                  <span class="active" v-if="knowlege.kbillId == paper.kbillId">{{knowlege.kbillName}} </span>
+                  <span v-if="knowlege.kbillId != paper.kbillId">{{knowlege.kbillName}} </span>
+                </a>
+            </div>
+          </div>
+          <div id="test-list">
+            <div class="test-left fl">
+              <div class="know-title">{{paper.kname}}</div>
+              <el-tree :data="paper.KnowledgeTreeDetail" :props="paper.defaultProps"></el-tree>
+            </div>
+            <div class="test-list fl">
+
+            </div>
+          </div>
+          </div>
         </div>
         <div id="step3"  v-if="active == 3"  v-loading='loads.loading4' element-loading-text="拼命加载中...">
             <el-row>
@@ -183,7 +216,7 @@ $(document).ready(function(){
 app = new Vue({
   el: '#app',
   data: {
-    active: 0,
+    active: 2,
     test_title: "",
     groupid: '',
     groupList:[],
@@ -210,6 +243,18 @@ app = new Vue({
       loading3: false,
       loading4: false,
       loading5: false
+    },
+    paperType: 0,
+    paper:{
+      organId: 0, //机构ID
+      kbillId: 0, //知识点ID
+      kname: '',
+      KnowledgeTrees: [],
+      KnowledgeTreeDetail: [],
+      defaultProps: {
+          children: 'parentId',
+          label: 'kname'
+        }
     }
   },
   methods: {
@@ -217,7 +262,7 @@ app = new Vue({
       // 下一步
       var msg = this.validationStep(this.active);
       if(!msg && this.active < 5){
-        if(this.active == 1){this.getRuleList();}
+        // if(this.active == 1){this.getRuleList();}
         this.active++;
       }else{
         _toastr(msg, "top-full-width", "error", false);
@@ -226,6 +271,20 @@ app = new Vue({
     previou: function() {
       // 上一步
       if (this.active　> 0){ this.active--; };
+    },
+    handlePaperType:function(val){
+      this.paperType = val;
+      if(val === 2){
+        this.getKnowledgeTrees();
+        console.log(this.paper.kbillId);
+      }else{
+        this.getRuleList();
+      }
+    },
+    selectKnow:function(kbillId,kname){
+      this.paper.kbillId = kbillId;
+      this.paper.kname = kname;
+      this.getKnowledgeTreeDetail(kbillId);
     },
     switchLetter: function(index) {
       //  题目答案选项
@@ -280,7 +339,7 @@ app = new Vue({
       var _self = this;
       $.ajax({
           type: "POST",
-          url: teacher_server_url + "/definedPaperController/getPaperDetailByPaperId.do?",
+          url: teacher_server_url + "/definedPaperController/getPaperDetailByPaperId.do",
           data: {paperId: this.paperid,page: this.currentPage, rows:this.pageSize},
           error: function (XMLHttpRequest, textStatus, errorThrown) {
               _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
@@ -493,7 +552,7 @@ app = new Vue({
             return this.groupid ? '' : "请选择分组";
           break;
         case 1:
-            return this.test_title ? this.getRuleList() : "请填写测试名";
+            return this.test_title ? '' : "请填写测试名";
           break;
         case 2:
             return this.ruleid ? this.handleCurrentPaperId() : "请选择一个组卷规则";
@@ -510,6 +569,52 @@ app = new Vue({
     },
     handleCurrentChange:function(val) {
         this.currentPage = val;
+    },
+    // 知识点组卷
+    getKnowledgeTrees:function() {
+      var _self = this;
+      $.ajax({
+          type: "POST",
+          url: teacher_server_url + "/FormPaper/getKnowledgeTrees.do",
+          data: {organId:sessionStorage.getItem('organ_id')},
+          error: function (XMLHttpRequest, textStatus, errorThrown) {
+              _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+          },
+          success: function (obj) {
+            var data = JSON.parse(obj);
+            console.log(data);
+            if(data.returnCode == 0){
+              _self.paper.KnowledgeTrees = data.data;
+              console.log(data.data.length,data.data[0].kbillId);
+              if(data.data.length){
+                _self.paper.kbillId = data.data[0].kbillId;
+                _self.paper.kname = data.data[0].kname;
+              }
+            }else{
+              _toastr(data.returnMsg, "top-full-width", "error", false);
+            }
+          }
+      });
+    },
+    getKnowledgeTreeDetail:function(kbillId){
+      var _self = this;
+      $.ajax({
+          type: "POST",
+          url: teacher_server_url + "/FormPaper/getKnowledgeTreeDetail.do",
+          data: {kbillId: kbillId},
+          error: function (XMLHttpRequest, textStatus, errorThrown) {
+              _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+          },
+          success: function (obj) {
+            var data = JSON.parse(obj);
+            console.log("aa",data)
+            if(data.returnCode == 0){
+              _self.paper.KnowledgeTreeDetail = data.data;
+            }else{
+              _toastr(data.returnMsg, "top-full-width", "error", false);
+            }
+          }
+      });
     }
 
   }
