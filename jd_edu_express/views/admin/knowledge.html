@@ -85,7 +85,7 @@
 			onClick: onClick,
 		}
 	};
-	
+
 	function onClick(event, treeId, treeNode, clickFlag) {
 		var treeObj = $.fn.zTree.getZTreeObj("ztree");
 		parent_id = treeNode.pId;
@@ -96,9 +96,9 @@
 		}
 
 		kid = treeNode.id;
-		value = treeNode.name;		
-	}		
-		
+		value = treeNode.name;
+	}
+
 	function onDrop(event, treeId, treeNodes, targetNode, moveType, isCopy) {
 		var treeObj = $.fn.zTree.getZTreeObj("ztree");
 		var nodes = treeObj.getNodesByParam("pId", treeNodes[0].pId, null);
@@ -125,7 +125,7 @@
 			});
 	}
 
-	//拖拽释放之后执行  
+	//拖拽释放之后执行
 	function beforeDrop(treeId, treeNodes, targetNode, moveType) {
 		if(moveType != "next" && moveType != "prev") {
 			alert('只能进行同级排序！');
@@ -147,7 +147,7 @@
 			return false;
 		}
 	}
-	
+
 	function ShowEdit() {
 		edit_index = layer.open({
 			type: 1,
@@ -245,17 +245,18 @@
 				kbill_id:kbill_id
 			},
 			function(data) {
+				console.log(data);
 				$("#ztree").empty();
 				$.fn.zTree.init($("#ztree"), setting, data);
 			});
 	}
-	
+
 	$(document).ready(function() {
 		index = parent.layer.getFrameIndex(window.name);
 		kbill_id = parent.kbill_id;
-		
+
 		$("#kbill_id").val(kbill_id);
-		
+
 		//绑定添加按钮事件(同级项目)
 		$("#btn_add1").click(function() {
 			add1();

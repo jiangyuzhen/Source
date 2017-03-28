@@ -1,5 +1,6 @@
 <% include ../header.html %>
 <link href="//cdn.bootcss.com/element-ui/1.2.4/theme-default/index.css" rel="stylesheet">
+<link rel="stylesheet" href="css/plugins/ztree/zTreeStyle/zTreeStyle.css" />
 <link rel="stylesheet" href="css/teacher/dispose_works.css" />
 
 <div class="wrapper wrapper-content">
@@ -109,7 +110,7 @@
                   知识点类型
               </div>
               <div class="fl chr clearfix" id="tabEduLevels">
-                <a class="fl" href="###"  @click="selectKnow(knowlege.kbillId, knowlege.kname)" v-for="knowlege in paper.KnowledgeTrees">
+                <a class="fl" href="###"  @click="selectKnow(knowlege.kbillId, knowlege.kbillName)" v-for="knowlege in paper.KnowledgeTrees">
                   <span class="active" v-if="knowlege.kbillId == paper.kbillId">{{knowlege.kbillName}} </span>
                   <span v-if="knowlege.kbillId != paper.kbillId">{{knowlege.kbillName}} </span>
                 </a>
@@ -118,10 +119,57 @@
           <div id="test-list">
             <div class="test-left fl">
               <div class="know-title">{{paper.kname}}</div>
-              <el-tree :data="paper.KnowledgeTreeDetail" :props="paper.defaultProps"></el-tree>
+              <div id="ztree" class="ztree"></div>
             </div>
             <div class="test-list fl">
-
+              <div class="clearfix knows">
+                <div class="fl chl">
+                    题型
+                </div>
+                <div class="fl chr clearfix" id="tabEduLevels">
+                  <a class="fl" href="###"  @click="selectType(null, '')">
+                    <span class="active" v-if="paper.typeId == null"> 全部 </span>
+                    <span  v-if="paper.typeId != null"> 全部 </span>
+                  </a>
+                  <a class="fl" href="###"  @click="selectType(QuestType.typeId, QuestType.typeName)" v-for="QuestType in paper.QuestTypes">
+                    <span class="active" v-if="QuestType.typeId == paper.typeId">{{QuestType.typeName}} </span>
+                    <span v-if="QuestType.typeId != paper.typeId">{{QuestType.typeName}} </span>
+                  </a>
+              </div>
+            </div>
+            <div class="paper-content" style="padding:5px 10px;">
+              <el-card class="box-card"  v-for="(question,index) in paper.QuestsList" style="100%">
+                  <div slot="header" class="clearfix">
+                    <span style="line-height: 36px;">　
+                      入库时间：{{switchTime(question.audit_date)}}
+                    </span>
+                    <span style="line-height: 36px;">　
+                      更新时间：{{switchTime(question.opr_date)}}
+                    </span>
+                    <el-button style="float: right;margin-top: 4px;" type="success"　size="small">
+                      加入试卷
+                    </el-button>
+                  </div>
+                  <div class="question-panel" >
+                      <div class="question-detail">
+                          <span v-html="question.statement">  {{ question.statement }} </span>
+                      </div>
+                      <div class="answer-memo">
+                        <el-tag type="success">试题答案</el-tag>
+                        <span v-html="question.answer_memo" style="padding-left: 10px;display: inline-block;">  {{ question.answer_memo || '空'}} </span>
+                      </div>
+                      <!-- <div class="answer_list">
+                          <p v-for="(answer, id) in question.answer_list">
+                            <span v-html="switchLetter(id)"> {{switchLetter(id)}} </span>
+                            <span v-html="answer.answer"> {{ switchLetter(id) + ' ' + answer.answer  }} </span>
+                           </p>
+                      </div> -->
+                      <div class="question_analysis">
+                          <el-tag type="warning">试题解析</el-tag>
+                          <span v-html="question.analysis" style="padding-left: 10px;display: inline-block;">  {{ question.analysis }} </span>
+                      </div>
+                  </div>
+              </el-card>
             </div>
           </div>
           </div>
@@ -132,7 +180,7 @@
                   <div class="black-content bg-purple-dark">
                       <h2 class="text-center">{{ paper_detail.paper_name }}</h2>
                       <h5 class="text-center" style="margin-bottom:20px;">测试时长: {{ paper_detail.duration }} Min</h5>
-                      <div id="paper-content">
+                      <div class="paper-content">
                         <el-card class="box-card"  v-for="(question,index) in questions">
                             <div slot="header" class="clearfix">
                               <span style="line-height: 36px;">考试真题</span>
@@ -206,8 +254,40 @@
 <script src="//cdn.bootcss.com/vue/2.2.1/vue.min.js"></script>
 <script src="//cdn.bootcss.com/element-ui/1.2.4/index.js"></script>
 <script src="//cdn.bootcss.com/moment.js/2.17.1/moment.min.js"></script>
+<script type="text/javascript" src="js/plugins/ztree/jquery.ztree.core.min.js"></script>
+<script type="text/javascript" src="js/plugins/ztree/jquery.ztree.excheck.min.js"></script>
+<script type="text/javascript" src="js/plugins/ztree/jquery.ztree.exedit.min.js"></script>
 <script>
 
+//  初始化树形设置
+var zTreeObj;
+var setting = {
+  edit: {
+    drug: {
+      isCopy: false,
+      isMove: true,
+    },
+    enable: true,
+    showRemoveBtn: false,
+    showRenameBtn: false
+  },
+  view: {
+    showIcon: false
+  },
+  data: {
+    key:{
+      name: 'kname'
+    },
+    simpleData: {
+      enable: true,
+      idKey: 'kid',
+			pIdKey: "parentId"
+    }
+  },
+  callback: {
+		onClick: zTreeOnClick
+	}
+};
 $(document).ready(function(){
   // 初始化数据
   app.getGrouoList();
@@ -246,15 +326,15 @@ app = new Vue({
     },
     paperType: 0,
     paper:{
-      organId: 0, //机构ID
-      kbillId: 0, //知识点ID
+      organId: null, //机构ID
+      kbillId: null, //知识点ID
       kname: '',
+      typeId: null,
+      kid: null,
       KnowledgeTrees: [],
       KnowledgeTreeDetail: [],
-      defaultProps: {
-          children: 'parentId',
-          label: 'kname'
-        }
+      QuestTypes:[],
+      QuestsList:{}
     }
   },
   methods: {
@@ -285,6 +365,20 @@ app = new Vue({
       this.paper.kbillId = kbillId;
       this.paper.kname = kname;
       this.getKnowledgeTreeDetail(kbillId);
+      this.getQuestTypes();
+      initZtree();
+    },
+    selectType:function(id,name){
+      this.paper.typeId = id;
+      console.log(zTreeObj);
+      if(this.paper.kid){
+        this.getQuests();
+      }else{
+        _toastr("请选择知识点", "top-full-width", "error", false);
+      }
+    },
+    switchTime:function(date){
+      return moment(date).format('YYYY-MM-DD HH:mm:ss')
     },
     switchLetter: function(index) {
       //  题目答案选项
@@ -582,13 +676,13 @@ app = new Vue({
           },
           success: function (obj) {
             var data = JSON.parse(obj);
-            console.log(data);
             if(data.returnCode == 0){
               _self.paper.KnowledgeTrees = data.data;
-              console.log(data.data.length,data.data[0].kbillId);
               if(data.data.length){
                 _self.paper.kbillId = data.data[0].kbillId;
-                _self.paper.kname = data.data[0].kname;
+                _self.paper.kname = data.data[0].kbillName;
+                _self.getKnowledgeTreeDetail(data.data[0].kbillId);
+                _self.getQuestTypes();
               }
             }else{
               _toastr(data.returnMsg, "top-full-width", "error", false);
@@ -607,9 +701,53 @@ app = new Vue({
           },
           success: function (obj) {
             var data = JSON.parse(obj);
-            console.log("aa",data)
             if(data.returnCode == 0){
               _self.paper.KnowledgeTreeDetail = data.data;
+              initZtree(data.data);
+            }else{
+              _toastr(data.returnMsg, "top-full-width", "error", false);
+            }
+          }
+      });
+    },
+    getQuestTypes:function() {
+      var _self = this;
+      $.ajax({
+          type: "POST",
+          url: teacher_server_url + "/FormPaper/getQuestTypes.do",
+          error: function (XMLHttpRequest, textStatus, errorThrown) {
+              _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+          },
+          success: function (obj) {
+            var data = JSON.parse(obj);
+            if(data.returnCode == 0){
+              _self.paper.QuestTypes = data.data;
+              // if(data.data.length){
+              //   _self.paper.typeId = data.data[0].typeId;
+              // }
+            }else{
+              _toastr(data.returnMsg, "top-full-width", "error", false);
+            }
+          }
+      });
+    },
+    getQuests:function() {
+      var _self = this;
+      $.ajax({
+          type: "POST",
+          url: teacher_server_url + "/FormPaper/queryQuestsByKid.do",
+          data:{
+            kid: this.paper.kid,
+            QuestTypeid: this.paper.typeId
+          },
+          error: function (XMLHttpRequest, textStatus, errorThrown) {
+              _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+          },
+          success: function (obj) {
+            var data = JSON.parse(obj);
+            console.log(data);
+            if(data.returnCode == 0){
+              _self.paper.QuestsList = data.data.list;
             }else{
               _toastr(data.returnMsg, "top-full-width", "error", false);
             }
@@ -621,6 +759,32 @@ app = new Vue({
 
 });
 
+function initZtree(data){
+  $("#ztree").empty();
+  zTreeObj = $.fn.zTree.init($("#ztree"), setting, data);
+}
 
+function zTreeOnClick(event, treeId, treeNode) {
+  app.paper.kid = treeNode.kid;
+  app.getQuests();
+  console.log(treeNode.kid + ", " + treeNode.kname);
+  console.log(app.paper);
+  // $.ajax({
+  //     type: "POST",
+  //     url: teacher_server_url + "/FormPaper/getQuestTypes.do",
+  //     data: {kbillId: kbillId},
+  //     error: function (XMLHttpRequest, textStatus, errorThrown) {
+  //         _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+  //     },
+  //     success: function (obj) {
+  //       var data = JSON.parse(obj);
+  //       if(data.returnCode == 0){
+  //         app.paper.KnowledgeTreeDetail = data.data;
+  //       }else{
+  //         _toastr(data.returnMsg, "top-full-width", "error", false);
+  //       }
+  //     }
+  // });
+}
 
 </script>
