@@ -1,0 +1,21 @@
+
+/*
+  测试列表style
+*/
+.test-panel {
+    border: solid 1px #dadada;
+    background: #F3EFCF;
+    padding: 15px;
+    border-radius: 4px;
+}
+.test-panel .span_title {
+    font-size: 26px;
+    color: #068F1A;
+}
+.test-panel .span_deadline {
+    margin-left: 20px;
+    color: #39BD4D;
+}
+.test-panel .bottom_p_content{
+    color: #305937;
+}
