@@ -100,7 +100,6 @@
     width: 1194px;
     margin: auto;
     margin-top: 15px;
-    border: solid 1px #eaeaea;
     height: auto;
     min-height: 500px;
 }
@@ -122,7 +121,7 @@
 }
 #test-list .test-list {
     border: 1px solid #eaeaea;
-    width: 990px;
+    width: 992px;
     min-height: 500px;
 }
 

@@ -87,14 +87,14 @@
                                 <el-row :gutter="20">
                                     <el-col :span="4">
                                         知识点:
-                                    </el-row>
+                                    </el-col>
                                     <el-col :span="16">
                                       <ul>
                                         <li v-for="knowlege in group.knowleges">
                                           {{ knowlege.kName }}
                                         </li>
                                       </ul>
-                                    </el-row>
+                                    </el-col>
                                 </el-row>
                             </el-col>
                         </el-row>
@@ -114,85 +114,113 @@
                   <span class="active" v-if="knowlege.kbillId == paper.kbillId">{{knowlege.kbillName}} </span>
                   <span v-if="knowlege.kbillId != paper.kbillId">{{knowlege.kbillName}} </span>
                 </a>
-            </div>
-          </div>
-          <div id="test-list">
-            <div class="test-left fl">
-              <div class="know-title">{{paper.kname}}</div>
-              <div id="ztree" class="ztree"></div>
-            </div>
-            <div class="test-list fl">
-              <div class="clearfix knows">
-                <div class="fl chl">
-                    题型
-                </div>
-                <div class="fl chr clearfix" id="tabEduLevels">
-                  <a class="fl" href="###"  @click="selectType(null, '')">
-                    <span class="active" v-if="paper.typeId == null"> 全部 </span>
-                    <span  v-if="paper.typeId != null"> 全部 </span>
-                  </a>
-                  <a class="fl" href="###"  @click="selectType(QuestType.typeId, QuestType.typeName)" v-for="QuestType in paper.QuestTypes">
-                    <span class="active" v-if="QuestType.typeId == paper.typeId">{{QuestType.typeName}} </span>
-                    <span v-if="QuestType.typeId != paper.typeId">{{QuestType.typeName}} </span>
-                  </a>
               </div>
             </div>
-            <div class="paper-content" style="padding:5px 10px;">
-              <el-card class="box-card"  v-for="(question,index) in paper.QuestsList" style="100%">
-                  <div slot="header" class="clearfix">
-                    <span style="line-height: 36px;">　
-                      入库时间：{{switchTime(question.audit_date)}}
-                    </span>
-                    <span style="line-height: 36px;">　
-                      更新时间：{{switchTime(question.opr_date)}}
-                    </span>
-                    <el-button style="float: right;margin-top: 4px;" type="success"　size="small">
-                      加入试卷
-                    </el-button>
+            <div id="test-list">
+              <div class="test-left fl">
+                <div class="know-title">{{paper.kname}}</div>
+                <div id="ztree" class="ztree"></div>
+              </div>
+              <div class="test-list fl">
+                <div class="clearfix knows">
+                  <div class="fl chl">
+                      题型
                   </div>
-                  <div class="question-panel" >
-                      <div class="question-detail">
-                          <span v-html="question.statement">  {{ question.statement }} </span>
-                      </div>
-                      <div class="answer-memo">
-                        <el-tag type="success">试题答案</el-tag>
-                        <span v-html="question.answer_memo" style="padding-left: 10px;display: inline-block;">  {{ question.answer_memo || '空'}} </span>
-                      </div>
-                      <!-- <div class="answer_list">
-                          <p v-for="(answer, id) in question.answer_list">
-                            <span v-html="switchLetter(id)"> {{switchLetter(id)}} </span>
-                            <span v-html="answer.answer"> {{ switchLetter(id) + ' ' + answer.answer  }} </span>
-                           </p>
-                      </div> -->
-                      <div class="question_analysis">
-                          <el-tag type="warning">试题解析</el-tag>
-                          <span v-html="question.analysis" style="padding-left: 10px;display: inline-block;">  {{ question.analysis }} </span>
-                      </div>
+                  <div class="fl chr clearfix" id="tabEduLevels">
+                    <a class="fl" href="###"  @click="selectType(null, '')">
+                      <span class="active" v-if="paper.typeId == null"> 全部 </span>
+                      <span  v-if="paper.typeId != null"> 全部 </span>
+                    </a>
+                    <a class="fl" href="###"  @click="selectType(QuestType.typeId, QuestType.typeName)" v-for="QuestType in paper.QuestTypes">
+                      <span class="active" v-if="QuestType.typeId == paper.typeId">{{QuestType.typeName}} </span>
+                      <span v-if="QuestType.typeId != paper.typeId">{{QuestType.typeName}} </span>
+                    </a>
                   </div>
-              </el-card>
+                </div>
+                <div class="paper-content" style="padding:5px 10px;">
+                  <el-card class="box-card"  v-for="(question,index) in paper.QuestsList" style="100%">
+                      <div slot="header" class="clearfix">
+                        <span style="line-height: 36px;">{{question.origin}}</span>
+                        <el-button
+                          @click="addBasket(question.question_id)"
+                          v-if="paper.QuestsBasket.indexOf(question.question_id) == -1"
+                          style="float: right;margin-top: 4px;" type="success"　size="small">
+                          加入试卷
+                        </el-button>
+                        <el-button
+                          @click="deleteBasket(question.question_id)"
+                          v-if="paper.QuestsBasket.indexOf(question.question_id) != -1"
+                          style="float: right;margin-top: 4px;" type="danger"　size="small">
+                          移除试题
+                        </el-button>
+                      </div>
+                      <div class="question-panel" >
+                          <div class="question-detail">
+                              <span v-html="question.question_detail">  {{ question.question_detail }} </span>
+                          </div>
+                          <div class="answer_list">
+                              <p v-for="(answer, id) in question.answer_list" style="display:inline-flex;margin: auto 10px;">
+                                <span v-html="switchLetter(id)"> {{switchLetter(id)}} </span>
+                                <span v-html="answer.answer"> {{ switchLetter(id) + ' ' + answer.answer  }} </span>
+                              </p>
+                          </div>
+                          <div class="question_analysis">
+                              <el-tag type="warning">试题解析</el-tag>
+                              <span v-html="question.question_analysis" style="padding-left: 10px;">  {{ question.question_analysis  }} </span>
+                          </div>
+                      </div>
+                  </el-card>
+                  <div v-if="paper.paperTotal > paper.pageSize">
+                    <el-pagination
+                       @size-change="handleSize"
+                       @current-change="handleCurrent"
+                       :current-page="paper.currentPage"
+                       :page-sizes="[10, 15, 20, 25]"
+                       :page-size="paper.pageSize"
+                       layout="total, sizes, prev, pager, next, jumper"
+                       :total="paper.paperTotal">
+                    </el-pagination>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
+            <el-badge :value="paper.QuestsBasket.length" class="item" style="position: fixed; top: 50%; right: 50px;">
+              <el-button type="success" @click="validationStep(2)" style="position: fixed; top: 50%; right: 20px; width: 36px; height: auto;padding:10px;box-shadow: 0px 3px 4px rgba(0,0,0,0.5); white-space: normal;">
+                已选试题数
+              </el-button>
+            </el-badge>
           </div>
         </div>
-        <div id="step3"  v-if="active == 3"  v-loading='loads.loading4' element-loading-text="拼命加载中...">
-            <el-row>
+        <div id="step3"  v-if="active == 3">
+            <el-row  v-loading='loads.loading4' element-loading-text="拼命加载中...">
                 <el-col :span="24">
                   <div class="black-content bg-purple-dark">
-                      <h2 class="text-center">{{ paper_detail.paper_name }}</h2>
-                      <h5 class="text-center" style="margin-bottom:20px;">测试时长: {{ paper_detail.duration }} Min</h5>
+                      <h2 class="text-center"  v-if="paper_detail.paper_name">{{ paper_detail.paper_name }}</h2>
+                      <h5 class="text-center"　v-if="paper_detail.duration" style="margin-bottom:20px;">测试时长: {{ paper_detail.duration }} Min</h5>
                       <div class="paper-content">
                         <el-card class="box-card"  v-for="(question,index) in questions">
                             <div slot="header" class="clearfix">
                               <span style="line-height: 36px;">考试真题</span>
-                              <el-button style="float: right;" @click="changeTopic(question.question_id, question.question_knowledge_point_id, index)" type="primary" size="small">替换该题</el-button>
+                              <el-button style="float: right;margin-top: 4px;"
+                                @click="changeTopic(question.question_id, question.question_knowledge_point_id, index)"
+                                type="primary"
+                                size="small">
+                                替换该题
+                              </el-button>
+                              <el-button
+                                @click="removeBasket(question.question_id)"
+                                v-if="paper.QuestsBasket.length > 0 && paperType == 2"
+                                style="float: right;margin-top: 4px;margin-right: 10px;" type="danger"　size="small">
+                                移除试题
+                              </el-button>
                             </div>
                             <div class="question-panel" >
                                 <div class="question-detail">
-                                    {{ index + '. ' }}
+                                    {{ index + (pageSize * (currentPage - 1 )) + 1 }}
                                     <span v-html="question.question_detail">  {{ question.question_detail }} </span>
                                 </div>
                                 <div class="answer_list">
-                                    <p v-for="(answer, id) in question.answer_list">
+                                    <p v-for="(answer, id) in question.answer_list" style="display:inline-flex;margin: auto 10px;">
                                       <span v-html="switchLetter(id)"> {{switchLetter(id)}} </span>
                                       <span v-html="answer.answer"> {{ switchLetter(id) + ' ' + answer.answer  }} </span>
                                      </p>
@@ -205,7 +233,7 @@
                         </el-card>
                       </div>
                   </div>
-              </el-col>
+                </el-col>
             </el-row>
             <div v-if="paperTotal > pageSize">
               <el-pagination
@@ -296,7 +324,7 @@ $(document).ready(function(){
 app = new Vue({
   el: '#app',
   data: {
-    active: 2,
+    active: 0,
     test_title: "",
     groupid: '',
     groupList:[],
@@ -334,7 +362,12 @@ app = new Vue({
       KnowledgeTrees: [],
       KnowledgeTreeDetail: [],
       QuestTypes:[],
-      QuestsList:{}
+      QuestsIds: [],
+      QuestsList:{},
+      currentPage: 1,
+      paperTotal: 0,
+      pageSize: 10,
+      QuestsBasket:[]
     }
   },
   methods: {
@@ -347,7 +380,7 @@ app = new Vue({
       }else{
         _toastr(msg, "top-full-width", "error", false);
       }
-      },
+    },
     previou: function() {
       // 上一步
       if (this.active　> 0){ this.active--; };
@@ -356,7 +389,6 @@ app = new Vue({
       this.paperType = val;
       if(val === 2){
         this.getKnowledgeTrees();
-        console.log(this.paper.kbillId);
       }else{
         this.getRuleList();
       }
@@ -364,15 +396,15 @@ app = new Vue({
     selectKnow:function(kbillId,kname){
       this.paper.kbillId = kbillId;
       this.paper.kname = kname;
+      this.paper.QuestsBasket = [];
       this.getKnowledgeTreeDetail(kbillId);
       this.getQuestTypes();
       initZtree();
     },
     selectType:function(id,name){
       this.paper.typeId = id;
-      console.log(zTreeObj);
       if(this.paper.kid){
-        this.getQuests();
+        this.getQuestIds();
       }else{
         _toastr("请选择知识点", "top-full-width", "error", false);
       }
@@ -382,7 +414,7 @@ app = new Vue({
     },
     switchLetter: function(index) {
       //  题目答案选项
-      var letters = ['A', 'B', 'C', 'D'];
+      var letters = ['A、', 'B、', 'C、', 'D、'];
       return letters[index];
     },
     getGrouoList: function() {
@@ -448,13 +480,13 @@ app = new Vue({
                 var quest = data.data.quests[i]
                 questids += ','+quest.quest_id;
               }
-              _self.getQuestList(questids);
+              _self.getQuestList(questids,'rule');
             }
           }
       });
       return '';
     },
-    getQuestList:function(questids) {
+    getQuestList:function(questids, type) {
       // 获取试卷题目列表
       var _self = this;
       $.ajax({
@@ -467,7 +499,11 @@ app = new Vue({
           success: function (obj) {
             var data = JSON.parse(obj);
             if(data.returnCode == 0){
-               _self.questions = data.data;
+              if(type == 'rule'){
+                _self.questions = data.data;
+              }else{
+                _self.paper.QuestsList = data.data;
+              }
             }else{
               _toastr(data.returnMsg, "top-full-width", "error", false);
             }
@@ -499,26 +535,32 @@ app = new Vue({
     },
     handleCurrentPaperId: function() {
       // 获取当前试卷ｉd，并请求试卷详情
-      var _self = this;
-      _self.loads.loading4 = true;
-      $.ajax({
-          type: "POST",
-          url: teacher_server_url + "/definedPaperController/getPaperIdByRuleId.do",
-          data: {ruleId:this.ruleid},
-          error: function (XMLHttpRequest, textStatus, errorThrown) {
-              _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
-          },
-          success: function (obj) {
-              var data = JSON.parse(obj)
-              _self.loads.loading4 = false;
-              _self.paperid = data.paperId;
-              if(data.paperId){
-                _self.getPaperList();
-              }else{
-                _toastr("获取试卷失败，请重试", "top-full-width", "error", false);
-              }
-          }
-      });
+      if(this.paperType == 1){
+        var _self = this;
+        _self.loads.loading4 = true;
+        $.ajax({
+            type: "POST",
+            url: teacher_server_url + "/definedPaperController/getPaperIdByRuleId.do",
+            data: {ruleId:this.ruleid},
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+            },
+            success: function (obj) {
+                var data = JSON.parse(obj)
+                _self.loads.loading4 = false;
+                _self.paperid = data.paperId;
+                if(data.paperId){
+                  _self.getPaperList();
+                }else{
+                  _toastr("获取试卷失败，请重试", "top-full-width", "error", false);
+                }
+            }
+        });
+      }else if(this.paperType == 2){
+        this.paperTotal = this.paper.QuestsIds.length;
+        var questids =  this.paper.QuestsIds.slice(0, this.paper.pageSize).join(',');
+        this.getQuestList(questids, 'rule');
+      }
     },
     changeTopic: function(question_id, question_knowledge, index) {
       // 换题
@@ -646,10 +688,17 @@ app = new Vue({
             return this.groupid ? '' : "请选择分组";
           break;
         case 1:
+            this.paperType　= 0;
             return this.test_title ? '' : "请填写测试名";
           break;
         case 2:
-            return this.ruleid ? this.handleCurrentPaperId() : "请选择一个组卷规则";
+            if(this.paperType == 1){
+              return this.ruleid ? this.handleCurrentPaperId() : "请选择一个组卷规则";
+            }else if(this.paperType == 2){
+              this.paper.QuestsIds = this.paper.QuestsBasket;
+              console.log(this.paper.QuestsIds.length,"2")
+              return this.paper.QuestsBasket.length > 0 ? this.handleCurrentPaperId() : "请选择试题";
+            }
           break;
         case 3:
             this.saveUpdatePaper();
@@ -659,14 +708,44 @@ app = new Vue({
       }
     },
     handleSizeChange:function(val) {
-        this.pageSize = val;
+        if(this.paperType  == 1){
+          this.pageSize = val;
+          this.currentPage = 1;
+        }else if(this.paperType  == 2){
+          this.paper.pageSize = val;
+          this.paper.currentPage = 1;
+          var questids =  this.paper.QuestsIds.slice(0, this.paper.pageSize).join(',');
+          this.getQuestList(questids, 'rule');
+        }
     },
     handleCurrentChange:function(val) {
-        this.currentPage = val;
+        if(this.paperType  == 1){
+          this.currentPage = val;
+        }else if(this.paperType  == 2){
+          this.paper.currentPage = val;
+          var start = this.paper.pageSize * (val - 1 );
+          var end = this.paper.pageSize * val;
+          var questids = this.paper.QuestsIds.slice(start, end).join(',');
+          this.getQuestList(questids, 'rule');
+        }
+    },
+    handleSize:function(val) {
+        this.paper.pageSize = val;
+        this.paper.currentPage = 1;
+        var questids =  this.paper.QuestsIds.slice(0, this.paper.pageSize).join(',');
+        this.getQuestList(questids, 'know');
+    },
+    handleCurrent:function(val) {
+        this.paper.currentPage = val;
+        var start = this.paper.pageSize * (val - 1 );
+        var end = this.paper.pageSize * val;
+        var questids = this.paper.QuestsIds.slice(start, end).join(',');
+        this.getQuestList(questids, 'know');
     },
     // 知识点组卷
     getKnowledgeTrees:function() {
       var _self = this;
+      _self.loads.loading3 = true;
       $.ajax({
           type: "POST",
           url: teacher_server_url + "/FormPaper/getKnowledgeTrees.do",
@@ -703,6 +782,7 @@ app = new Vue({
             var data = JSON.parse(obj);
             if(data.returnCode == 0){
               _self.paper.KnowledgeTreeDetail = data.data;
+              _self.loads.loading3 = false;
               initZtree(data.data);
             }else{
               _toastr(data.returnMsg, "top-full-width", "error", false);
@@ -711,6 +791,7 @@ app = new Vue({
       });
     },
     getQuestTypes:function() {
+      //获取题型列表
       var _self = this;
       $.ajax({
           type: "POST",
@@ -722,16 +803,14 @@ app = new Vue({
             var data = JSON.parse(obj);
             if(data.returnCode == 0){
               _self.paper.QuestTypes = data.data;
-              // if(data.data.length){
-              //   _self.paper.typeId = data.data[0].typeId;
-              // }
             }else{
               _toastr(data.returnMsg, "top-full-width", "error", false);
             }
           }
       });
     },
-    getQuests:function() {
+    getQuestIds:function() {
+      // 获得所选题型的ID
       var _self = this;
       $.ajax({
           type: "POST",
@@ -745,16 +824,36 @@ app = new Vue({
           },
           success: function (obj) {
             var data = JSON.parse(obj);
-            console.log(data);
             if(data.returnCode == 0){
-              _self.paper.QuestsList = data.data.list;
+              _self.paper.QuestsIds = data.data.list;
+              _self.paper.paperTotal = data.data.count;
+              if(data.data.list.length > 0){
+                var questids = data.data.list.slice(0, _self.paper.pageSize).join(',');
+                _self.getQuestList(questids, 'know');
+              }
             }else{
               _toastr(data.returnMsg, "top-full-width", "error", false);
             }
           }
       });
-    }
-
+    },
+    addBasket:function(question_id) {
+      this.paper.QuestsBasket.push(question_id);
+      console.log(this.paper.QuestsIds.length,"3")
+    },
+    deleteBasket:function(question_id) {
+      this.paper.QuestsBasket = this.paper.QuestsBasket.filter(function(val,index){
+        return val != question_id;
+      })
+    },
+    removeBasket:function(question_id) {
+      var QuestsBasket = this.paper.QuestsBasket.filter(function(val,index){
+        return val != question_id;
+      });
+      var questids =  QuestsBasket.slice(0, this.paper.pageSize).join(',');
+      this.getQuestList(questids, 'rule');
+      this.paper.QuestsBasket = QuestsBasket;
+    },
   }
 
 });
@@ -766,25 +865,7 @@ function initZtree(data){
 
 function zTreeOnClick(event, treeId, treeNode) {
   app.paper.kid = treeNode.kid;
-  app.getQuests();
-  console.log(treeNode.kid + ", " + treeNode.kname);
-  console.log(app.paper);
-  // $.ajax({
-  //     type: "POST",
-  //     url: teacher_server_url + "/FormPaper/getQuestTypes.do",
-  //     data: {kbillId: kbillId},
-  //     error: function (XMLHttpRequest, textStatus, errorThrown) {
-  //         _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
-  //     },
-  //     success: function (obj) {
-  //       var data = JSON.parse(obj);
-  //       if(data.returnCode == 0){
-  //         app.paper.KnowledgeTreeDetail = data.data;
-  //       }else{
-  //         _toastr(data.returnMsg, "top-full-width", "error", false);
-  //       }
-  //     }
-  // });
+  app.getQuestIds();
 }
 
 </script>
