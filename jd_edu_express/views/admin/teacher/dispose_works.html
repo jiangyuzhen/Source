@@ -577,15 +577,24 @@ app = new Vue({
             success: function (obj) {
                 var data = JSON.parse(obj);
                 _self.loads.loading4 = false;
-                if(data.returnCode == 0){
+                if(data.returnCode == 0 && _self.paperType == 1){
                   _self.questions = _self.questions.map(function(question, id){
                       if(id == index){
                         return data.data;
                       }
                       return question;
                   });
+                }else if(data.returnCode == 0 && _self.paperType == 2){
+                    _self.paper.QuestsBasket = _self.paper.QuestsBasket.map(function(quest, id){
+                      if(quest == question_id){
+                        return data.data.question_id;
+                      }else{
+                        return quest;
+                      }
+                    });
+                    _self.paper.QuestsIds = _self.paper.QuestsBasket;
                 }else{
-                   _toastr("更换题目失败，请重试", "top-full-width", "error", false);
+                  _toastr("更换题目失败，请重试", "top-full-width", "error", false);
                 }
             }
         });
@@ -696,7 +705,6 @@ app = new Vue({
               return this.ruleid ? this.handleCurrentPaperId() : "请选择一个组卷规则";
             }else if(this.paperType == 2){
               this.paper.QuestsIds = this.paper.QuestsBasket;
-              console.log(this.paper.QuestsIds.length,"2")
               return this.paper.QuestsBasket.length > 0 ? this.handleCurrentPaperId() : "请选择试题";
             }
           break;
@@ -839,7 +847,6 @@ app = new Vue({
     },
     addBasket:function(question_id) {
       this.paper.QuestsBasket.push(question_id);
-      console.log(this.paper.QuestsIds.length,"3")
     },
     deleteBasket:function(question_id) {
       this.paper.QuestsBasket = this.paper.QuestsBasket.filter(function(val,index){
