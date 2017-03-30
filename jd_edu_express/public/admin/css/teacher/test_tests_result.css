@@ -1,21 +1,67 @@
-
 /*
   测试列表style
 */
 .test-panel {
     border: solid 1px #dadada;
-    background: #F3EFCF;
+    background: rgba(230, 230, 230, 0.2);
     padding: 15px;
     border-radius: 4px;
+    margin-bottom: 15px;
+    position: relative;
+}
+.test-panel:hover {
+  border: solid 1px #1AB394;
+  background: #F1F2F1;
 }
 .test-panel .span_title {
     font-size: 26px;
-    color: #068F1A;
+    /*color: #068F1A;*/
+    font-weight: bold;
 }
 .test-panel .span_deadline {
     margin-left: 20px;
-    color: #39BD4D;
+    /*color: #39BD4D;*/
 }
 .test-panel .bottom_p_content{
-    color: #305937;
+    /*color: #305937;*/
+}
+
+.special_color {
+    /*color: #1AB394;*/
+    color: #000;
+    font-weight: bold;
+}
+
+/*
+　 列表右侧
+*/
+.right_p_content {
+    position: absolute;
+    right: 20px;
+    width: 70px;
+    top: 50%;
+    margin-top: -35px;
+    height: 70px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 70px;
+    background: #068F1A;
+    color: whitesmoke;
+    font-size: 14px;
+    font-weight: bold;
+}
+.right_p_content .test-status {
+    width: 54px;
+    height: 54px;
+    margin: 8px auto;
+    background: #fff;
+    color: #898989;
+    border-radius: 50%;
+    line-height: 54px;
+}
+.testColor {
+  background-color: #FF7b25;
+}
+.textColor {
+  color: #FF7b25;
 }

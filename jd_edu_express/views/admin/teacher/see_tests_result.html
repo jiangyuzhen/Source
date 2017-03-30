@@ -7,12 +7,22 @@
     <el-tabs v-model="setting.activeName" @tab-click="handleClick">
       <el-tab-pane label="测试列表" name="first">
         <div class="test-list">
-          <div class="test-panel">
+          <div class="test-panel"　v-for="test in list.testList">
             <p class="left_p_content">
-              <span class="span_title">aaa</span>
-              <span class="span_deadline">测试截止时间：2017-3-28</span>
+              <span class="span_title"> {{ test.testName }} </span>
+              <span class="span_deadline"> 测试截止时间： </span>
+              <span class="special_color"> {{ switchTime( test.testEndTime ) }} </span>
             </p>
-            <p class="bottom_p_content">共40题；还有4位同学未完成练习；发布时间：2017-3-26</p>
+            <p class="bottom_p_content">
+              共<span class="special_color"> {{ test.numQuests }} </span> 题；
+              已有<span class="special_color color-blue-dark"> {{ test.didMember }} </span>位同学完成练习；
+              发布时间：<span class="special_color"> {{ switchTime( test.testTime ) }} </span>
+            </p>
+            <div class="right_p_content" v-bind:class="{ 'testColor': !test.status }">
+              <p class="test-status">
+                {{ test.status == 0 ? '草稿'　: '已发布' }}
+              </p>
+            </div>
           </div>
         </div>
       </el-tab-pane>
@@ -22,7 +32,7 @@
     </el-tabs>
 
   </div>
-  <div class="row" style="background-color: white;padding: 15px;text-align:center;margin-top:15px;">
+  <div class="row" style="background-color: white;padding: 15px;margin-top:15px;">
     <el-pagination
       @size-change="handleSizeChange"
       @current-change="handleCurrentChange"
@@ -52,12 +62,43 @@
         pageSize: 10,
         totalPage: 200
       },
+      loading:{
+        loading1: false
+      },
       list:{
-
+        testList:[]
       }
     },
     methods:{
+      // 获取数据
+      getTestList:function(){
+        // 获取测试列表
+        var _self = this;
+        $.ajax({
+            type: "POST",
+            url: teacher_server_url + "/testStatis/getTestList.do",
+            data: {teacherId:teacher_id},
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+            },
+            success: function (obj) {
+                var data = JSON.parse(obj);
+                console.log(data);
+                if(data.returnCode == 0){
+                  _self.list.testList = data.data;
+                }else{
+                  _toastr(data.returnMsg, "top-full-width", "error", false);
+                }
+            }
+        });
+      },
+      // 格式转换
+      switchTime:function(date){
+        return moment(date).format('YYYY-MM-DD HH:mm:ss')
+      },
+      // 页面控制
       handleClick:function(tab, event) {
+        // 切换面板
         console.log(tab, event);
       },
       handleSizeChange:function(val) {
@@ -68,6 +109,11 @@
         console.log(`当前页: ${val}`);
       }
     }
+  });
+
+  $(document).ready(function(){
+    // 初始化数据
+    app.getTestList();
   });
 
 </script>

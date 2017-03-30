@@ -111,8 +111,7 @@
               </div>
               <div class="fl chr clearfix" id="tabEduLevels">
                 <a class="fl" href="###"  @click="selectKnow(knowlege.kbillId, knowlege.kbillName)" v-for="knowlege in paper.KnowledgeTrees">
-                  <span class="active" v-if="knowlege.kbillId == paper.kbillId">{{knowlege.kbillName}} </span>
-                  <span v-if="knowlege.kbillId != paper.kbillId">{{knowlege.kbillName}} </span>
+                  <span v-bind:class="{ 'active': knowlege.kbillId == paper.kbillId }" >{{knowlege.kbillName}} </span>
                 </a>
               </div>
             </div>
@@ -128,12 +127,10 @@
                   </div>
                   <div class="fl chr clearfix" id="tabEduLevels">
                     <a class="fl" href="###"  @click="selectType(null, '')">
-                      <span class="active" v-if="paper.typeId == null"> 全部 </span>
-                      <span  v-if="paper.typeId != null"> 全部 </span>
+                      <span v-bind:class="{ 'active': paper.typeId == null }"> 全部 </span>
                     </a>
                     <a class="fl" href="###"  @click="selectType(QuestType.typeId, QuestType.typeName)" v-for="QuestType in paper.QuestTypes">
-                      <span class="active" v-if="QuestType.typeId == paper.typeId">{{QuestType.typeName}} </span>
-                      <span v-if="QuestType.typeId != paper.typeId">{{QuestType.typeName}} </span>
+                      <span v-bind:class="{ 'active': QuestType.typeId == paper.typeId }">{{QuestType.typeName}} </span>
                     </a>
                   </div>
                 </div>
@@ -185,7 +182,7 @@
               </div>
             </div>
             <el-badge :value="paper.QuestsBasket.length" class="item" style="position: fixed; top: 50%; right: 50px;">
-              <el-button type="success" @click="validationStep(2)" style="position: fixed; top: 50%; right: 20px; width: 36px; height: auto;padding:10px;box-shadow: 0px 3px 4px rgba(0,0,0,0.5); white-space: normal;">
+              <el-button type="success" @click="next" style="position: fixed; top: 50%; right: 20px; width: 36px; height: auto;padding:10px;box-shadow: 0px 3px 4px rgba(0,0,0,0.5); white-space: normal;">
                 已选试题数
               </el-button>
             </el-badge>
@@ -620,6 +617,7 @@ app = new Vue({
           success: function (obj) {
               var data = JSON.parse(obj);
               _self.loads.loading4 = false;
+              console.log(data);
               if(data.returnCode == 0){
                  _toastr("保存更新成功", "top-full-width", "success", false);
               }else{
@@ -701,6 +699,7 @@ app = new Vue({
             return this.test_title ? '' : "请填写测试名";
           break;
         case 2:
+            console.log(this.paperType);
             if(this.paperType == 1){
               return this.ruleid ? this.handleCurrentPaperId() : "请选择一个组卷规则";
             }else if(this.paperType == 2){
