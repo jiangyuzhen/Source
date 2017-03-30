@@ -201,8 +201,12 @@ router.get('/dispose_work', function(req, res) {
     res.render('./admin/teacher/dispose_works', { title: '布置测试'});
 });
 
-router.get('/see_tests_result', function(req, res) {
-    res.render('./admin/teacher/see_tests_result', { title: '测试结果'});
+router.get('/test_lists', function(req, res) {
+    res.render('./admin/teacher/test_lists', { title: '测试列表'});
+});
+
+router.get('/test_result', function(req, res) {
+    res.render('./admin/teacher/test_result', { title: '测试结果'});
 });
 
 
