@@ -112,8 +112,8 @@
         <div class="test-details" v-if="setting.currentActive == 'details'">
           <el-card class="box-card">
             <div slot="header" class="clearfix">
-              <span style="line-height: 36px;"> 当前考核对象：　</span>
-              <span style="line-height: 36px;font-weight:bold;font-size:16px;">{{ list.testName }}</span>
+              <span style="line-height: 36px;font-weight:bold;font-size:20px;">[{{ list.testName }}]</span>
+              <span style="line-height: 36px;"> 学生详情　</span>
               <el-button style="float: right;" @click="handlePanelChange('testList')" type="primary">测试列表</el-button>
               <el-button style="float: right;margin-right:15px;" @click="handlePanelChange('statistical')" type="success">测试总览</el-button>
             </div>
@@ -166,8 +166,8 @@
         <div class="member-details" v-if="setting.currentActive == 'memberDetails'">
           <el-card class="box-card">
             <div slot="header" class="clearfix">
-              <span style="line-height: 36px;font-weight:bold;font-size:20px;">[{{ list.testName }}]</span>
-              <span style="line-height: 36px;"> 学生详情　</span>
+              <span style="line-height: 36px;"> 当前考核对象：　</span>
+              <span style="line-height: 36px;font-weight:bold;font-size:16px;">{{ list.testName }}</span>
               <el-button style="float: right;" @click="handlePanelChange('testList')" type="primary">测试列表</el-button>
               <el-button style="float: right;margin-right:15px;" @click="handlePanelChange('details')" type="success">测试详情</el-button>
             </div>
