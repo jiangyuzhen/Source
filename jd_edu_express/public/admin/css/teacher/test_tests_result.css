@@ -65,3 +65,27 @@
 .textColor {
   color: #FF7b25;
 }
+
+/*
+  测试统计
+*/
+.statistical{
+  margin: 15px;
+  font-size: 18px;
+  color: #fff;
+  padding: 40px;
+  height: 150px;
+  text-align: center;
+  border-radius: 4px;
+}
+
+/*
+  学生情况style
+*/
+.red {
+    color: red;
+}
+
+.green {
+    color: green;
+}

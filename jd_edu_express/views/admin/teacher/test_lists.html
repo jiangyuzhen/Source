@@ -6,8 +6,8 @@
   <div class="row" style="background-color: white;padding: 15px;" >
     <el-tabs v-model="setting.activeName" @tab-click="handleClick">
       <el-tab-pane label="测试列表" name="first">
-        <div class="test-list">
-          <div class="test-panel"　v-for="test in list.testList">
+        <div class="test-list" v-if="setting.currentActive == 'testList'">
+          <div class="test-panel" @click="handleTestStatistics(test.testId, test.testName)"　v-for="test in list.testList">
             <p class="left_p_content">
               <span class="span_title"> {{ test.testName }} </span>
               <span class="span_deadline"> 测试截止时间： </span>
@@ -25,13 +25,206 @@
             </div>
           </div>
         </div>
+        <div class="test-statistical" v-if="setting.currentActive == 'statistical'">
+          <el-card class="box-card">
+            <div slot="header" class="clearfix">
+              <span style="line-height: 36px;font-weight:bold;font-size:20px;">[{{ list.testName }}]</span>
+              <span style="line-height: 36px;"> 结果总览</span>
+              <el-button style="float: right;" @click="handlePanelChange('testList')" type="primary">测试列表</el-button>
+              <el-button style="float: right;margin-right:15px;" @click="handlePanelChange('details')" type="success">测试详情</el-button>
+            </div>
+            <h4>本次测试总览：</h4>
+            <el-row>
+              <el-col :span="8">
+                <div class="statistical"　style="background:#20A0FF">
+                  <p>学生答题平均时长</p>
+                  <p>{{ list.avgTime }} min</p>
+                </div>
+              </el-col>
+              <el-col :span="8">
+                <div class="statistical"　style="background:#13CE66">
+                  <p>本次测试正确率</p>
+                  <p>{{(list.testStatis.did_question_right_num　/ list.testStatis.did_question_num).toFixed(4)*100}} %</p>
+                </div>
+              </el-col>
+              <el-col :span="8">
+                <div class="statistical" 　style="background:#F7BA2A">
+                  <p>答题学生人数</p>
+                  <p>共{{list.testStatis.total_question_num}}人</p>
+                </div>
+              </el-col>
+            </el-row>
+            <h4>学生本次测试情况：</h4>
+            <div style="padding:15px;">
+              <el-table
+                :data="list.testStatisticsByKid"
+                border
+                style="width: 100%">
+                <el-table-column
+                  type="index"
+                  width="80">
+                </el-table-column>
+                <el-table-column
+                  prop="kname"
+                  label="考点">
+                </el-table-column>
+                <el-table-column
+                  prop="total_num"
+                  label="总共出题">
+                </el-table-column>
+                <el-table-column
+                  prop="avgNum"
+                  label="平均答对">
+                </el-table-column>
+                <el-table-column
+                  prop="avg"
+                  label="正确率">
+                </el-table-column>
+                <el-table-column
+                  prop="avgTime"
+                  label="平均用时">
+                </el-table-column>
+              </el-table>
+            </div>
+            <h4>题目正确率：</h4>
+            <div style="padding:15px;">
+              <el-table
+                :data="list.statisList"
+                border
+                style="width: 100%">
+                <el-table-column
+                  type="index"
+                  width="80">
+                </el-table-column>
+                <el-table-column
+                  prop="kname"
+                  label="题目">
+                </el-table-column>
+                <el-table-column
+                  prop="avg"
+                  label="正确率">
+                </el-table-column>
+              </el-table>
+            </div>
+          </el-card>
+        </div>
+        <!-- <div id="container" style="width: 100%;height:400px;margin-top:20px;border-radius:4px;border:solid 1px #ededed;padding:15px;"></div> -->
+        <div class="test-details" v-if="setting.currentActive == 'details'">
+          <el-card class="box-card">
+            <div slot="header" class="clearfix">
+              <span style="line-height: 36px;"> 当前考核对象：　</span>
+              <span style="line-height: 36px;font-weight:bold;font-size:16px;">{{ list.testName }}</span>
+              <el-button style="float: right;" @click="handlePanelChange('testList')" type="primary">测试列表</el-button>
+              <el-button style="float: right;margin-right:15px;" @click="handlePanelChange('statistical')" type="success">测试总览</el-button>
+            </div>
+            <div style="padding:15px;">
+              <el-button @click="viewMemberInfo()">学生详情</el-button>
+              <el-table
+                :data="list.memberStatistics"
+                border
+                style="width: 100%">
+                <el-table-column
+                  type="index"
+                  width="80">
+                </el-table-column>
+                <el-table-column
+                  prop="user_sno"
+                  label="学号">
+                </el-table-column>
+                <el-table-column
+                  prop="name"
+                  label="姓名">
+                </el-table-column>
+                <el-table-column
+                  prop="class"
+                  label="所在行政班">
+                </el-table-column>
+                <el-table-column
+                  prop="avg"
+                  label="正确率">
+                </el-table-column>
+                <el-table-column
+                  prop="did_num"
+                  label="做题数">
+                </el-table-column>
+                <el-table-column
+                  prop="total_use_time"
+                  label="共用时">
+                </el-table-column>
+                <el-table-column
+                  label="操作"
+                  prop="group_id"
+                  width="100">
+                  <template scope="scope">
+                    <el-button  @click.native.prevent="viewMemberInfo(scope.row)" type="text" size="small">详情</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </el-card>
+        </div>
+        <div class="member-details" v-if="setting.currentActive == 'memberDetails'">
+          <el-card class="box-card">
+            <div slot="header" class="clearfix">
+              <span style="line-height: 36px;font-weight:bold;font-size:20px;">[{{ list.testName }}]</span>
+              <span style="line-height: 36px;"> 学生详情　</span>
+              <el-button style="float: right;" @click="handlePanelChange('testList')" type="primary">测试列表</el-button>
+              <el-button style="float: right;margin-right:15px;" @click="handlePanelChange('details')" type="success">测试详情</el-button>
+            </div>
+            <h4>本次测试总览：</h4>
+            <el-row>
+              <el-col :span="8">
+                <div class="statistical"　style="background:#20A0FF">
+                  <p>学生答题平均时长</p>
+                  <p>{{ list.memberDetails.avgTime }} min</p>
+                </div>
+              </el-col>
+              <el-col :span="8">
+                <div class="statistical"　style="background:#13CE66">
+                  <p>本次测试正确率</p>
+                  <p>{{list.memberDetails.avg}} %</p>
+                </div>
+              </el-col>
+              <el-col :span="8">
+                <div class="statistical" 　style="background:#F7BA2A">
+                  <p>答题总数</p>
+                  <p>共{{list.memberDetails.didNum}}题</p>
+                </div>
+              </el-col>
+            </el-row>
+            <h4>学生本次测试情况：</h4>
+            <div style="padding:15px;">
+              <el-table
+                :data="list.memberDetailLists"
+                border
+                @click="viewMemberInfo(scope.row)"
+                style="width: 100%">
+                <el-table-column
+                  type="index"
+                  width="80">
+                </el-table-column>
+                <el-table-column
+                  prop="kname"
+                  label="题目">
+                </el-table-column>
+                <el-table-column
+                  prop="status"
+                  label="正确与否">
+                  <template scope="scope">
+                    <span v-bind:class="{ 'green': scope.row.status=='正确', 'red':scope.row.status=='错误' }">{{scope.row.status}}</span>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </el-card>
+        </div>
       </el-tab-pane>
       <el-tab-pane label="成绩总览" name="second">
 
       </el-tab-pane>
     </el-tabs>
   </div>
-  <div class="row" style="background-color: white;padding: 15px;margin-top:15px;">
+  <!-- <div class="row" style="background-color: white;padding: 15px;margin-top:15px;">
     <el-pagination
       @size-change="handleSizeChange"
       @current-change="handleCurrentChange"
@@ -41,20 +234,22 @@
       layout="total, sizes, prev, pager, next, jumper"
       :total="page.totalPage">
     </el-pagination>
-  </div>
+  </div> -->
 </div>
 
 <% include ../footer.html %>
 <script src="//cdn.bootcss.com/vue/2.2.1/vue.min.js"></script>
 <script src="//cdn.bootcss.com/element-ui/1.2.4/index.js"></script>
 <script src="//cdn.bootcss.com/moment.js/2.17.1/moment.min.js"></script>
+<script src="http://cdn.bootcss.com/echarts/3.5.0/echarts.min.js"></script>
 <script>
 
   var app = new Vue({
     el:'#app',
     data:{
       setting:{
-        activeName: 'first'
+        activeName: 'first',
+        currentActive: 'testList'
       },
       page:{
         currentPage: 1,
@@ -65,7 +260,17 @@
         loading1: false
       },
       list:{
-        testList:[]
+        testId: null,
+        testName: '',
+        avgTime: 0,
+        memberId: 0,
+        testList:[],
+        testStatis: {},
+        statisList: [],
+        testStatisticsByKid: [],
+        memberStatistics: [],
+        memberDetails:{},
+        memberDetailLists: []
       }
     },
     methods:{
@@ -82,9 +287,129 @@
             },
             success: function (obj) {
                 var data = JSON.parse(obj);
-                console.log(data);
                 if(data.returnCode == 0){
                   _self.list.testList = data.data;
+                }else{
+                  _toastr(data.returnMsg, "top-full-width", "error", false);
+                }
+            }
+        });
+      },
+      getTestStatistics:function() {
+        // 获取测试统计数据
+        var _self = this;
+        $.ajax({
+            type: "POST",
+            url: teacher_server_url + "/testStatis/getTestStatistics.do",
+            data: {testId:this.list.testId},
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+            },
+            success: function (obj) {
+                var data = JSON.parse(obj);
+                if(data.returnCode == 0){
+                  _self.setting.currentActive = 'statistical';
+                  _self.list.testStatis = data.data;
+                  _self.list.avgTime = (data.data.total_use_time / data.data.did_question_num).toFixed(2);
+                }else{
+                  _toastr(data.returnMsg, "top-full-width", "error", false);
+                }
+            }
+        });
+      },
+      getTestStatisticsByQuest:function() {
+        // 获取测试详情
+        var _self = this;
+        $.ajax({
+            type: "POST",
+            url: teacher_server_url + "/testStatis/getTestStatisticsByQuest.do",
+            data: {testId:this.list.testId},
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+            },
+            success: function (obj) {
+                var data = JSON.parse(obj);
+                if(data.returnCode == 0){
+                  _self.list.statisList = data.data.quest_detail.map(function(detail,index){
+                      return Object.assign({}, detail, {avg: (detail.did_right_num / detail.did_num).toFixed(4)*100 + ' %'});
+                  });
+                }else{
+                  _toastr(data.returnMsg, "top-full-width", "error", false);
+                }
+            }
+        });
+      },
+      getTestStatisticsByKid:function() {
+        // 获取测试结果
+        var _self = this;
+        $.ajax({
+            type: "POST",
+            url: teacher_server_url + "/testStatis/getTestStatisticsByKid.do",
+            data: {testId:this.list.testId},
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+            },
+            success: function (obj) {
+                var data = JSON.parse(obj);
+                if(data.returnCode == 0){
+                  _self.list.testStatisticsByKid = data.data.map(function(detail,index){
+                      return Object.assign({}, detail, {
+                        avg: (detail.did_right_num / detail.did_num).toFixed(4)*100 + ' %',
+                        avgTime: (detail.total_use_time / detail.did_num).toFixed(2),
+                        avgNum: (detail.total_use_time / detail.did_num).toFixed(2)
+                      });
+                  });
+                }else{
+                  _toastr(data.returnMsg, "top-full-width", "error", false);
+                }
+            }
+        });
+      },
+      getMemberStatistics:function(){
+        // 获取测试结果
+        var _self = this;
+        $.ajax({
+            type: "POST",
+            url: teacher_server_url + "/testStatis/getMemberStatistics.do",
+            data: {testId:this.list.testId},
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+            },
+            success: function (obj) {
+                var data = JSON.parse(obj);
+                if(data.returnCode == 0){
+                  _self.list.memberStatistics = data.data;
+                }else{
+                  _toastr(data.returnMsg, "top-full-width", "error", false);
+                }
+            }
+        });
+      },
+      viewMemberInfo:function() {
+        // 获取测试结果
+        var _self = this;
+        this.setting.currentActive = 'memberDetails';
+        $.ajax({
+            type: "POST",
+            url: teacher_server_url + "/testStatis/getMemberTestInfo.do",
+            data: {testId:this.list.testId,memberId: this.list.memberId || 1},
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                _toastr("error message : " + errorThrown.toString(), "bottom-right", "error", false);
+            },
+            success: function (obj) {
+                var data = JSON.parse(obj);
+                console.log(data);
+                if(data.returnCode == 0){
+                  _self.list.memberDetails = {
+                    avg:(data.data.did_question_right_num / data.data.did_question_num).toFixed(4)*100,
+                    avgTime: (data.data.total_use_time / data.data.quest_detail.length).toFixed(2),
+                    didNum: data.data.did_question_num
+                  };
+                  _self.list.memberDetailLists = data.data.quest_detail.map(function(quest){
+                    return Object.assign({}, quest, {
+                      status: quest.status ? '正确' : '错误'
+                    });
+                  });
                 }else{
                   _toastr(data.returnMsg, "top-full-width", "error", false);
                 }
@@ -96,6 +421,19 @@
         return moment(date).format('YYYY-MM-DD HH:mm:ss')
       },
       // 页面控制
+      handleTestStatistics:function(tid, tname) {
+        this.list.testId = tid;
+        this.list.testName = tname;
+        // this.setting.currentActive ='memberDetails';
+        this.viewMemberInfo();
+        this.getTestStatistics();
+        this.getTestStatisticsByKid();
+        this.getTestStatisticsByQuest();
+      },
+      handlePanelChange:function(type) {
+        console.log(type);
+        this.setting.currentActive = type;
+      },
       handleClick:function(tab, event) {
         // 切换面板
         console.log(tab, event);

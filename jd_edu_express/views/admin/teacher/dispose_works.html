@@ -617,8 +617,8 @@ app = new Vue({
           success: function (obj) {
               var data = JSON.parse(obj);
               _self.loads.loading4 = false;
-              console.log(data);
               if(data.returnCode == 0){
+                  _self.paperid = data.paperId;
                  _toastr("保存更新成功", "top-full-width", "success", false);
               }else{
                  _toastr("保存更新失败，请重试", "top-full-width", "error", false);
@@ -699,7 +699,6 @@ app = new Vue({
             return this.test_title ? '' : "请填写测试名";
           break;
         case 2:
-            console.log(this.paperType);
             if(this.paperType == 1){
               return this.ruleid ? this.handleCurrentPaperId() : "请选择一个组卷规则";
             }else if(this.paperType == 2){
